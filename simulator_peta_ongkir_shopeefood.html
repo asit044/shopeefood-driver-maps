@@ -161,6 +161,12 @@
 
             <!-- Quick City Selector & GPS Button -->
             <div class="flex items-center gap-1.5 shrink-0">
+                <!-- Google Maps & Real-Time Settings Modal Button -->
+                <button onclick="openGoogleMapsModal()" title="Pengaturan Google Maps & Real-Time Data" class="w-8 h-8 rounded-xl bg-white/15 hover:bg-white/25 active:scale-95 text-white flex items-center justify-center transition shadow-xs relative">
+                    <i class="fa-solid fa-satellite-dish text-xs"></i>
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 absolute top-1 right-1 animate-ping"></span>
+                </button>
+
                 <!-- GPS Locate -->
                 <button onclick="locateUserGPS()" title="Gunakan Lokasi GPS Saya" class="w-8 h-8 rounded-xl bg-white/15 hover:bg-white/25 active:scale-95 text-white flex items-center justify-center transition shadow-xs">
                     <i class="fa-solid fa-location-crosshairs text-xs"></i>
@@ -213,27 +219,61 @@
                 <!-- Map Container -->
                 <div id="map" class="w-full flex-1 z-0"></div>
 
-                <!-- Floating Top Bar on Map: Mode Click Indicator -->
-                <div class="absolute top-3 left-3 right-3 z-20 flex items-center justify-between gap-2 pointer-events-none">
+                <!-- Floating Top Bar on Map: Mode Click Indicator & Real-Time Live Traffic Badge -->
+                <div class="absolute top-3 left-3 right-3 z-20 flex items-center justify-between gap-1.5 pointer-events-none">
                     <!-- Mode Indicator Pill (Pointer events auto) -->
-                    <button id="mapModePill" onclick="toggleActiveClickMode()" class="pointer-events-auto bg-slate-900/90 backdrop-blur-md text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 border border-white/10 active:scale-95 transition">
+                    <button id="mapModePill" onclick="toggleActiveClickMode()" class="pointer-events-auto bg-slate-900/90 backdrop-blur-md text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 border border-white/10 active:scale-95 transition shrink-0">
                         <span id="mapModeDot" class="w-2 h-2 rounded-full bg-shopee-500 animate-ping"></span>
-                        <span id="mapModeText">Mode: 1. Ambil (Resto)</span>
+                        <span id="mapModeText">Mode: 1. Ambil</span>
                         <i class="fa-solid fa-arrow-right-arrow-left text-[10px] text-amber-400 ml-0.5"></i>
                     </button>
 
+                    <!-- Real-Time Traffic Badge (Pointer events auto) -->
+                    <button onclick="openGoogleMapsModal()" id="trafficStatusBadge" class="pointer-events-auto bg-emerald-600/90 hover:bg-emerald-700 backdrop-blur-md text-white text-[10px] font-extrabold px-2.5 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 border border-white/20 active:scale-95 transition">
+                        <span class="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+                        <span>🚦 Live Traffic</span>
+                    </button>
+
                     <!-- Map Style Switcher -->
-                    <div class="pointer-events-auto bg-white/95 backdrop-blur-md rounded-xl shadow-md border border-slate-200 px-2 py-1 flex items-center gap-1">
+                    <div class="pointer-events-auto bg-white/95 backdrop-blur-md rounded-xl shadow-md border border-slate-200 px-2 py-1 flex items-center gap-1 shrink-0">
                         <select id="tileLayerSelect" onchange="switchTileProvider(this.value)" class="text-[11px] font-bold text-slate-700 bg-transparent focus:outline-none cursor-pointer">
-                            <option value="googleRoad" selected>🗺️ Jalan Raya</option>
-                            <option value="googleTraffic">🚦 Live Traffic</option>
+                            <option value="googleTraffic" selected>🚦 Live Traffic Real-Time</option>
+                            <option value="googleRoad">🗺️ Jalan Raya</option>
                             <option value="googleHybrid">🛰️ Satelit Asli</option>
                         </select>
                     </div>
                 </div>
 
+                <!-- Floating Live Driver Real-Time Telemetry Bar -->
+                <div id="driverRealtimeBar" class="hidden absolute top-14 left-3 right-3 z-20 pointer-events-auto bg-slate-900/95 backdrop-blur-md text-white rounded-2xl p-2.5 shadow-xl border border-white/15 flex items-center justify-between transition-all">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black text-sm">
+                            <i class="fa-solid fa-motorcycle animate-bounce"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-[10px] font-bold text-emerald-400">GPS Driver Live</span>
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                            </div>
+                            <div id="driverSpeedText" class="text-xs font-black font-mono text-white">0 km/jam • Siap Jalan</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="toggleFollowDriver()" id="btnFollowDriver" class="px-2 py-1 bg-white/15 hover:bg-white/25 text-[10px] font-bold rounded-lg text-white">
+                            <i class="fa-solid fa-crosshairs mr-1"></i>Ikuti Saya
+                        </button>
+                        <button onclick="stopRealtimeTracking()" class="px-2 py-1 bg-rose-500/80 hover:bg-rose-600 text-[10px] font-bold rounded-lg text-white" title="Matikan Pelacakan Live">
+                            <i class="fa-solid fa-stop"></i>
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Floating Quick Action Buttons on Map Bottom-Right -->
                 <div class="absolute bottom-[230px] right-3 z-20 flex flex-col gap-2">
+                    <!-- Live GPS Tracking Driver Toggle -->
+                    <button onclick="toggleRealtimeDriverTracking()" id="btnLiveTracking" title="Aktifkan Pelacakan Driver Real-Time" class="w-10 h-10 rounded-2xl bg-white text-emerald-600 shadow-xl border border-slate-200 flex items-center justify-center hover:bg-emerald-50 active:scale-90 transition">
+                        <i class="fa-solid fa-satellite-dish text-base"></i>
+                    </button>
                     <!-- Tukar Titik 1 & 2 -->
                     <button onclick="swapPoints()" title="Tukar Titik 1 & 2" class="w-10 h-10 rounded-2xl bg-white text-slate-800 shadow-xl border border-slate-200 flex items-center justify-center hover:bg-slate-50 active:scale-90 transition">
                         <i class="fa-solid fa-arrow-down-up-across-line text-shopee-600 text-sm"></i>
@@ -333,7 +373,7 @@
                         </button>
                         
                         <!-- Main CTA: Buka di App Google Maps Navigasi -->
-                        <a id="btnOpenInGoogleMaps" href="#" target="_blank" class="col-span-3 py-2.5 px-3 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-md shadow-blue-600/30 transition flex items-center justify-center gap-2">
+                        <a id="btnOpenInGoogleMaps" href="#" target="_blank" onclick="handleGoogleMapsNavigation(event)" class="col-span-3 py-2.5 px-3 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-md shadow-blue-600/30 transition flex items-center justify-center gap-2">
                             <i class="fa-solid fa-diamond-turn-right text-base text-white"></i>
                             <span>Mulai Navigasi di Google Maps</span>
                             <i class="fa-solid fa-arrow-up-right-from-square text-[10px] opacity-75"></i>
@@ -660,6 +700,138 @@
         </nav>
     </div>
 
+    <!-- ==================================================================== -->
+    <!-- GOOGLE MAPS & REAL-TIME DATA SETTINGS MODAL -->
+    <!-- ==================================================================== -->
+    <div id="googleMapsModal" class="hidden fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity">
+        <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border border-slate-200">
+            <!-- Modal Header -->
+            <div class="px-5 py-4 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black">
+                        <i class="fa-solid fa-satellite-dish text-base"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-extrabold text-sm text-white">Google Maps & Data Real-Time</h3>
+                        <p class="text-[10px] text-slate-300">Live Traffic & Pelacakan Driver GPS</p>
+                    </div>
+                </div>
+                <button onclick="closeGoogleMapsModal()" class="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-xs transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Modal Content -->
+            <div class="p-4 overflow-y-auto space-y-3.5 text-xs">
+                
+                <!-- 1. Live Traffic Status Card -->
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-slate-800 flex items-center gap-1.5">
+                            <i class="fa-solid fa-traffic-light text-emerald-600"></i>
+                            Live Traffic Real-Time
+                        </span>
+                        <span class="inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+                            Terhubung
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-500 leading-relaxed">
+                        Data kemacetan langsung dari satelit Google Maps diperbarui secara dinamis pada jalan raya:
+                    </p>
+                    <!-- Traffic Legend -->
+                    <div class="grid grid-cols-3 gap-1.5 text-center text-[10px] font-bold">
+                        <div class="bg-emerald-50 text-emerald-800 border border-emerald-200 py-1.5 rounded-lg flex items-center justify-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Lancar
+                        </div>
+                        <div class="bg-amber-50 text-amber-800 border border-amber-200 py-1.5 rounded-lg flex items-center justify-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-amber-500"></span> Padat
+                        </div>
+                        <div class="bg-rose-50 text-rose-800 border border-rose-200 py-1.5 rounded-lg flex items-center justify-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-rose-600"></span> Macet
+                        </div>
+                    </div>
+                    <button onclick="refreshTrafficLayer()" class="w-full py-2 bg-white hover:bg-slate-100 text-slate-700 font-bold rounded-xl border border-slate-200 shadow-xs flex items-center justify-center gap-1.5 active:scale-95 transition">
+                        <i class="fa-solid fa-arrows-rotate text-emerald-600 text-xs"></i>
+                        <span>Segarkan Data Live Traffic Sekarang</span>
+                    </button>
+                </div>
+
+                <!-- 2. Live GPS Driver Tracking Card -->
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-slate-800 flex items-center gap-1.5">
+                            <i class="fa-solid fa-motorcycle text-shopee-600"></i>
+                            Pelacakan Posisi Driver (GPS Live)
+                        </span>
+                        <span id="modalDriverGpsStatus" class="inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">
+                            Non-aktif
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-500 leading-relaxed">
+                        Aktifkan GPS real-time untuk memantau pergerakan motor Anda di peta dengan kecepatan & akurasi tinggi.
+                    </p>
+                    <div class="grid grid-cols-2 gap-2 text-[11px]">
+                        <div class="bg-white p-2 rounded-xl border border-slate-200">
+                            <span class="text-[10px] text-slate-400 block font-medium">Kecepatan Saat Ini</span>
+                            <span id="modalDriverSpeed" class="font-black font-mono text-slate-800">0 km/jam</span>
+                        </div>
+                        <div class="bg-white p-2 rounded-xl border border-slate-200">
+                            <span class="text-[10px] text-slate-400 block font-medium">Akurasi GPS</span>
+                            <span id="modalDriverAccuracy" class="font-black font-mono text-slate-800">±0 m</span>
+                        </div>
+                    </div>
+                    <button id="btnModalToggleTracking" onclick="toggleRealtimeDriverTracking()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl shadow-xs flex items-center justify-center gap-2 active:scale-95 transition">
+                        <i class="fa-solid fa-location-arrow"></i>
+                        <span id="modalToggleTrackingText">Mulai Pelacakan Driver Real-Time</span>
+                    </button>
+                </div>
+
+                <!-- 3. Google Maps Platform API Key (Optional) -->
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-slate-800 flex items-center gap-1.5">
+                            <i class="fa-brands fa-google text-blue-600"></i>
+                            Google Cloud API Key (Opsional)
+                        </span>
+                        <span class="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                            Zero-Config Siap Pakai
+                        </span>
+                    </div>
+                    <p class="text-[10px] text-slate-500 leading-relaxed">
+                        Aplikasi ini sudah otomatis menyajikan data peta & Live Traffic Google Maps secara langsung. Jika Anda memiliki API Key Google Maps Platform resmi, Anda dapat memasukkannya di bawah ini:
+                    </p>
+                    <div class="space-y-1">
+                        <input id="inputGoogleApiKey" type="password" placeholder="AIzaSy... (Opsional)" class="w-full text-xs font-mono px-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-shopee-600">
+                        <div class="flex items-center justify-between text-[10px] text-slate-400 px-1">
+                            <span>Tersimpan aman di perangkat Anda (LocalStorage)</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 pt-1">
+                        <button onclick="saveGoogleMapsApiKey()" class="flex-1 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs active:scale-95 transition">
+                            Simpan Pengaturan
+                        </button>
+                        <button onclick="resetGoogleMapsApiKey()" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs active:scale-95 transition" title="Reset ke Default">
+                            Reset
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Compliance & Attribution Note -->
+                <div class="text-[10px] text-slate-400 leading-tight border-t border-slate-200 pt-2 px-1">
+                    Didukung oleh Google Maps Platform (Maps, Routes, Live Traffic) & Geolocation Telemetry W3C.
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-3 bg-slate-100 border-t border-slate-200 flex justify-end">
+                <button onclick="closeGoogleMapsModal()" class="px-5 py-2 bg-slate-800 text-white font-bold rounded-xl text-xs hover:bg-slate-900 transition">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Floating Feedback Toast Notification -->
     <div id="feedbackToast" class="fixed bottom-16 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 text-white text-xs font-semibold px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-2 border border-slate-700 transition duration-300 opacity-0 pointer-events-none transform translate-y-3">
         <i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>
@@ -722,7 +894,23 @@
                 customerPay: 9500
             },
 
-            dailyOrders: []
+            dailyOrders: [],
+
+            // Real-Time GPS & Google Maps Telemetry
+            realtime: {
+                isTracking: false,
+                watchId: null,
+                followDriver: true,
+                driverLat: null,
+                driverLng: null,
+                speedKmH: 0,
+                heading: null,
+                accuracyM: 0,
+                lastTimestamp: null,
+                trafficRefreshIntervalId: null,
+                googleMapsApiKey: localStorage.getItem('google_maps_api_key') || '',
+                engineMode: 'leaflet-traffic'
+            }
         };
 
         // Caches & Timers
@@ -732,24 +920,26 @@
         const pointSearchTimers = {};
         const reverseGeocodeTimers = {};
 
-        // Leaflet Map objects
+        // Leaflet Map objects & Driver Telemetry Markers
         var map;
         var currentTileLayer;
         var routePolyline;
         var routeCasingPolyline;
         const markers = {};
+        var driverMarker = null;
+        var driverAccuracyCircle = null;
 
-        // Tile Providers (Google Maps Genuine Layers)
+        // Tile Providers (Google Maps Genuine Layers with Real-Time Traffic)
         const tileProviders = {
+            googleTraffic: {
+                name: 'Google Maps (Live Traffic Real-Time)',
+                url: 'https://mt{s}.google.com/vt?lyrs=m,traffic&x={x}&y={y}&z={z}',
+                options: { maxZoom: 20, subdomains: ['0', '1', '2', '3'], attribution: '&copy; Google Maps Live Traffic' }
+            },
             googleRoad: {
                 name: 'Google Maps (Jalan Raya Asli)',
                 url: 'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
                 options: { maxZoom: 20, subdomains: ['0', '1', '2', '3'], attribution: '&copy; Google Maps' }
-            },
-            googleTraffic: {
-                name: 'Google Maps (Live Traffic)',
-                url: 'https://mt{s}.google.com/vt?lyrs=m,traffic&x={x}&y={y}&z={z}',
-                options: { maxZoom: 20, subdomains: ['0', '1', '2', '3'], attribution: '&copy; Google Maps Traffic' }
             },
             googleHybrid: {
                 name: 'Google Maps (Satelit Asli)',
@@ -759,12 +949,303 @@
         };
 
         function switchTileProvider(providerKey) {
-            const p = tileProviders[providerKey] || tileProviders.googleRoad;
+            const p = tileProviders[providerKey] || tileProviders.googleTraffic;
             if (currentTileLayer && map.hasLayer(currentTileLayer)) {
                 map.removeLayer(currentTileLayer);
             }
             currentTileLayer = L.tileLayer(p.url, p.options).addTo(map);
             currentTileLayer.bringToBack();
+        }
+
+        // ============================================================================
+        // GOOGLE MAPS REAL-TIME & TELEMETRY MODULE
+        // ============================================================================
+        function openGoogleMapsModal() {
+            const modal = document.getElementById('googleMapsModal');
+            if (modal) modal.classList.remove('hidden');
+            const apiKeyInput = document.getElementById('inputGoogleApiKey');
+            if (apiKeyInput) {
+                apiKeyInput.value = state.realtime.googleMapsApiKey || '';
+            }
+            updateModalTelemetryUI();
+        }
+
+        function closeGoogleMapsModal() {
+            const modal = document.getElementById('googleMapsModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function saveGoogleMapsApiKey() {
+            const apiKeyInput = document.getElementById('inputGoogleApiKey');
+            const val = apiKeyInput ? apiKeyInput.value.trim() : '';
+            state.realtime.googleMapsApiKey = val;
+            try {
+                if (val) {
+                    localStorage.setItem('google_maps_api_key', val);
+                    showFeedbackToast('API Key Google Maps berhasil disimpan!');
+                } else {
+                    localStorage.removeItem('google_maps_api_key');
+                    showFeedbackToast('Kembali ke Google Maps Real-Time Mode default.');
+                }
+            } catch (e) {}
+            closeGoogleMapsModal();
+        }
+
+        function resetGoogleMapsApiKey() {
+            const apiKeyInput = document.getElementById('inputGoogleApiKey');
+            if (apiKeyInput) apiKeyInput.value = '';
+            state.realtime.googleMapsApiKey = '';
+            try {
+                localStorage.removeItem('google_maps_api_key');
+            } catch (e) {}
+            showFeedbackToast('Pengaturan API Key direset ke default.');
+        }
+
+        function refreshTrafficLayer() {
+            if (map) {
+                const p = tileProviders.googleTraffic;
+                if (currentTileLayer && map.hasLayer(currentTileLayer)) {
+                    map.removeLayer(currentTileLayer);
+                }
+                const tsUrl = `${p.url}&_t=${Date.now()}`;
+                currentTileLayer = L.tileLayer(tsUrl, p.options).addTo(map);
+                currentTileLayer.bringToBack();
+                showFeedbackToast('🚦 Data Live Traffic Google Maps diperbarui!');
+            }
+        }
+
+        function createDriverPinIcon() {
+            return L.divIcon({
+                className: 'bg-transparent border-0',
+                html: `
+                    <div class="relative flex items-center justify-center">
+                        <div class="w-10 h-10 rounded-full bg-emerald-500/30 animate-ping absolute"></div>
+                        <div class="w-8 h-8 rounded-full bg-slate-900 border-2 border-emerald-400 text-emerald-400 shadow-xl flex items-center justify-center relative">
+                            <i class="fa-solid fa-motorcycle text-xs"></i>
+                        </div>
+                        <div class="absolute -bottom-4 bg-emerald-600 text-white font-extrabold text-[8px] px-1.5 py-0.2 rounded-full shadow-md whitespace-nowrap">
+                            SAYA (DRIVER)
+                        </div>
+                    </div>
+                `,
+                iconSize: [40, 40],
+                iconAnchor: [20, 20]
+            });
+        }
+
+        function toggleRealtimeDriverTracking() {
+            if (state.realtime.isTracking) {
+                stopRealtimeTracking();
+            } else {
+                startRealtimeTracking();
+            }
+        }
+
+        function startRealtimeTracking() {
+            if (!navigator.geolocation) {
+                alert('Browser pada HP Anda tidak mendukung Geolocation GPS.');
+                return;
+            }
+
+            state.realtime.isTracking = true;
+            state.realtime.followDriver = true;
+
+            // UI updates
+            const bar = document.getElementById('driverRealtimeBar');
+            if (bar) bar.classList.remove('hidden');
+
+            const btn = document.getElementById('btnLiveTracking');
+            if (btn) {
+                btn.className = 'w-10 h-10 rounded-2xl bg-emerald-600 text-white shadow-xl border border-emerald-500 flex items-center justify-center active:scale-90 transition animate-pulse';
+            }
+
+            const modalGpsBadge = document.getElementById('modalDriverGpsStatus');
+            if (modalGpsBadge) {
+                modalGpsBadge.className = 'inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
+                modalGpsBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span> Pelacakan Aktif';
+            }
+
+            const modalBtnText = document.getElementById('modalToggleTrackingText');
+            if (modalBtnText) modalBtnText.textContent = 'Hentikan Pelacakan Driver';
+
+            showFeedbackToast('🛰️ Pelacakan GPS Driver Real-Time aktif!');
+
+            // Start watchPosition
+            state.realtime.watchId = navigator.geolocation.watchPosition(
+                onDriverPositionUpdate,
+                onDriverPositionError,
+                {
+                    enableHighAccuracy: true,
+                    maximumAge: 1000,
+                    timeout: 10000
+                }
+            );
+
+            // Auto-refresh traffic layer every 60s
+            if (!state.realtime.trafficRefreshIntervalId) {
+                state.realtime.trafficRefreshIntervalId = setInterval(refreshTrafficLayer, 60000);
+            }
+        }
+
+        function stopRealtimeTracking() {
+            if (state.realtime.watchId !== null) {
+                navigator.geolocation.clearWatch(state.realtime.watchId);
+                state.realtime.watchId = null;
+            }
+
+            state.realtime.isTracking = false;
+
+            // UI updates
+            const bar = document.getElementById('driverRealtimeBar');
+            if (bar) bar.classList.add('hidden');
+
+            const btn = document.getElementById('btnLiveTracking');
+            if (btn) {
+                btn.className = 'w-10 h-10 rounded-2xl bg-white text-emerald-600 shadow-xl border border-slate-200 flex items-center justify-center hover:bg-emerald-50 active:scale-90 transition';
+            }
+
+            const modalGpsBadge = document.getElementById('modalDriverGpsStatus');
+            if (modalGpsBadge) {
+                modalGpsBadge.className = 'inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700';
+                modalGpsBadge.textContent = 'Non-aktif';
+            }
+
+            const modalBtnText = document.getElementById('modalToggleTrackingText');
+            if (modalBtnText) modalBtnText.textContent = 'Mulai Pelacakan Driver Real-Time';
+
+            if (driverAccuracyCircle && map && map.hasLayer(driverAccuracyCircle)) {
+                map.removeLayer(driverAccuracyCircle);
+            }
+            if (driverMarker && map && map.hasLayer(driverMarker)) {
+                map.removeLayer(driverMarker);
+            }
+
+            showFeedbackToast('Pelacakan GPS driver dihentikan.');
+        }
+
+        function onDriverPositionUpdate(position) {
+            const coords = position.coords;
+            const lat = coords.latitude;
+            const lng = coords.longitude;
+            const accuracy = coords.accuracy || 10;
+            const now = Date.now();
+
+            let speedKmH = 0;
+            if (coords.speed !== null && !isNaN(coords.speed) && coords.speed >= 0) {
+                speedKmH = Math.round(coords.speed * 3.6);
+            } else if (state.realtime.driverLat !== null && state.realtime.lastTimestamp) {
+                const timeDiffHours = (now - state.realtime.lastTimestamp) / (1000 * 3600);
+                if (timeDiffHours > 0.0002) { // > ~0.7 seconds
+                    const distKm = calculateHaversineKm(state.realtime.driverLat, state.realtime.driverLng, lat, lng);
+                    speedKmH = Math.min(120, Math.round(distKm / timeDiffHours));
+                }
+            }
+
+            state.realtime.driverLat = lat;
+            state.realtime.driverLng = lng;
+            state.realtime.speedKmH = speedKmH;
+            state.realtime.accuracyM = Math.round(accuracy);
+            state.realtime.heading = coords.heading;
+            state.realtime.lastTimestamp = now;
+
+            // Update or create driver marker on map
+            if (!driverMarker) {
+                driverMarker = L.marker([lat, lng], {
+                    icon: createDriverPinIcon(),
+                    zIndexOffset: 1000
+                }).addTo(map);
+            } else {
+                driverMarker.setLatLng([lat, lng]);
+                if (map && !map.hasLayer(driverMarker)) driverMarker.addTo(map);
+            }
+
+            // Accuracy circle
+            if (!driverAccuracyCircle) {
+                driverAccuracyCircle = L.circle([lat, lng], {
+                    radius: accuracy,
+                    color: '#10b981',
+                    weight: 1,
+                    opacity: 0.4,
+                    fillColor: '#10b981',
+                    fillOpacity: 0.1
+                }).addTo(map);
+            } else {
+                driverAccuracyCircle.setLatLng([lat, lng]);
+                driverAccuracyCircle.setRadius(accuracy);
+                if (map && !map.hasLayer(driverAccuracyCircle)) driverAccuracyCircle.addTo(map);
+            }
+
+            // Telemetry text
+            const speedText = `${speedKmH} km/jam • Akurasi ±${Math.round(accuracy)}m`;
+            const speedEl = document.getElementById('driverSpeedText');
+            if (speedEl) speedEl.textContent = speedText;
+
+            updateModalTelemetryUI();
+
+            // Auto-follow driver
+            if (state.realtime.followDriver && map) {
+                map.panTo([lat, lng], { animate: true, duration: 0.8 });
+            }
+        }
+
+        function onDriverPositionError(err) {
+            console.warn('Geolocation warning:', err);
+            const speedEl = document.getElementById('driverSpeedText');
+            if (speedEl) speedEl.textContent = 'Mencari sinyal GPS driver...';
+        }
+
+        function toggleFollowDriver() {
+            state.realtime.followDriver = !state.realtime.followDriver;
+            const btn = document.getElementById('btnFollowDriver');
+            if (btn) {
+                if (state.realtime.followDriver) {
+                    btn.className = 'px-2 py-1 bg-emerald-500/80 hover:bg-emerald-600 text-[10px] font-bold rounded-lg text-white';
+                    btn.innerHTML = '<i class="fa-solid fa-crosshairs mr-1"></i>Ikuti Saya';
+                    if (state.realtime.driverLat && state.realtime.driverLng && map) {
+                        map.panTo([state.realtime.driverLat, state.realtime.driverLng], { animate: true });
+                    }
+                } else {
+                    btn.className = 'px-2 py-1 bg-white/20 hover:bg-white/30 text-[10px] font-bold rounded-lg text-white';
+                    btn.innerHTML = '<i class="fa-solid fa-lock-open mr-1"></i>Bebas';
+                }
+            }
+        }
+
+        function updateModalTelemetryUI() {
+            const spd = document.getElementById('modalDriverSpeed');
+            const acc = document.getElementById('modalDriverAccuracy');
+            if (spd) spd.textContent = `${state.realtime.speedKmH || 0} km/jam`;
+            if (acc) acc.textContent = `±${state.realtime.accuracyM || 0} m`;
+        }
+
+        function handleGoogleMapsNavigation(e) {
+            if (e) e.preventDefault();
+            const activeKeys = getActiveWaypointKeys();
+            const merchant = state.waypoints.merchant;
+            const dest = state.waypoints[activeKeys[activeKeys.length - 1]];
+
+            const isAndroid = /Android/i.test(navigator.userAgent);
+            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+            // Origin: if driver is tracking live, navigate from driver's actual GPS position!
+            const originLat = (state.realtime.isTracking && state.realtime.driverLat) ? state.realtime.driverLat : merchant.lat;
+            const originLng = (state.realtime.isTracking && state.realtime.driverLng) ? state.realtime.driverLng : merchant.lng;
+
+            if (isAndroid) {
+                const intentUrl = `google.navigation:q=${dest.lat.toFixed(6)},${dest.lng.toFixed(6)}&mode=d`;
+                window.location.href = intentUrl;
+                setTimeout(() => {
+                    window.open(`https://www.google.com/maps/dir/?api=1&origin=${originLat.toFixed(6)},${originLng.toFixed(6)}&destination=${dest.lat.toFixed(6)},${dest.lng.toFixed(6)}&travelmode=driving`, '_blank');
+                }, 1500);
+            } else if (isIOS) {
+                const iosUrl = `comgooglemaps://?saddr=${originLat.toFixed(6)},${originLng.toFixed(6)}&daddr=${dest.lat.toFixed(6)},${dest.lng.toFixed(6)}&directionsmode=driving`;
+                window.location.href = iosUrl;
+                setTimeout(() => {
+                    window.open(`https://www.google.com/maps/dir/?api=1&origin=${originLat.toFixed(6)},${originLng.toFixed(6)}&destination=${dest.lat.toFixed(6)},${dest.lng.toFixed(6)}&travelmode=driving`, '_blank');
+                }, 1500);
+            } else {
+                window.open(`https://www.google.com/maps/dir/?api=1&origin=${originLat.toFixed(6)},${originLng.toFixed(6)}&destination=${dest.lat.toFixed(6)},${dest.lng.toFixed(6)}&travelmode=driving`, '_blank');
+            }
         }
 
         function escapeHtml(str) {
@@ -850,8 +1331,10 @@
                 zoomControl: false // Cleaner for mobile screen
             });
 
-            // Pasang Google Maps Asli (Jalan Raya)
-            switchTileProvider('googleRoad');
+            // Pasang Google Maps Asli (Live Traffic Real-Time) secara default
+            switchTileProvider('googleTraffic');
+            const tileSel = document.getElementById('tileLayerSelect');
+            if (tileSel) tileSel.value = 'googleTraffic';
 
             // Markers 1 & 2
             markers.merchant = L.marker([state.waypoints.merchant.lat, state.waypoints.merchant.lng], {
