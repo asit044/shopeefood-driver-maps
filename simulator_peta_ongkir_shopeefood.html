@@ -1,0 +1,1889 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ShopeeFood Driver - Peta & Kalkulator Argo</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        shopee: {
+                            50: '#fff5f2',
+                            100: '#ffe6df',
+                            200: '#ffcfc2',
+                            300: '#ffa894',
+                            400: '#fc7756',
+                            500: '#f55c3d',
+                            600: '#EE4D2D',
+                            700: '#d13b1d',
+                            800: '#a72f17',
+                            900: '#852816'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Mobile Touch & Scroll Optimizations */
+        * {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        body {
+            overscroll-behavior-y: none;
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+
+        /* Marker Needle Pin Style */
+        .pin-wrapper {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.35));
+            transition: transform 0.15s ease-out;
+        }
+        .pin-wrapper:hover {
+            transform: scale(1.12);
+        }
+        .pin-head {
+            width: 36px;
+            height: 36px;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 15px;
+            border: 2.5px solid #ffffff;
+            font-weight: 800;
+        }
+        .pin-point {
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            margin-top: -2px;
+        }
+        .pin-badge {
+            margin-top: 2px;
+            padding: 2px 6px;
+            background: rgba(15, 23, 42, 0.95);
+            color: #ffffff;
+            font-size: 9px;
+            font-weight: 800;
+            border-radius: 6px;
+            white-space: nowrap;
+            letter-spacing: -0.01em;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+        }
+        .pin-pulse {
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(238, 77, 45, 0.7); }
+            70% { box-shadow: 0 0 0 14px rgba(238, 77, 45, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(238, 77, 45, 0); }
+        }
+
+        /* Leaflet Popups */
+        .leaflet-popup-content-wrapper {
+            border-radius: 16px !important;
+            padding: 2px !important;
+            box-shadow: 0 12px 24px -4px rgba(15, 23, 42, 0.3) !important;
+            border: 1px solid #e2e8f0;
+        }
+        .leaflet-popup-content {
+            margin: 10px !important;
+            font-family: 'Inter', sans-serif !important;
+        }
+        .leaflet-pane { z-index: 10 !important; }
+        .leaflet-top, .leaflet-bottom { z-index: 20 !important; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-800 font-sans antialiased selection:bg-shopee-600 selection:text-white min-h-screen flex items-center justify-center p-0 sm:p-3">
+
+    <!-- Mobile App Container (Phone Frame on Desktop, 100% Full-Screen on Mobile) -->
+    <div class="w-full max-w-md h-[100dvh] sm:h-[844px] bg-slate-50 relative flex flex-col overflow-hidden sm:rounded-[38px] sm:border-[8px] sm:border-slate-800 sm:shadow-2xl sm:ring-1 sm:ring-white/10">
+
+        <!-- ==================================================================== -->
+        <!-- 1. TOP MOBILE APP BAR (SHOPEEFOOD DRIVER HEADER) -->
+        <!-- ==================================================================== -->
+        <header class="bg-shopee-600 text-white pt-2 pb-2.5 px-3.5 shrink-0 shadow-md z-30 flex items-center justify-between gap-2">
+            <!-- Brand & Driver Status Pill -->
+            <div class="flex items-center gap-2 min-w-0">
+                <div class="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-white shrink-0 shadow-xs">
+                    <i class="fa-solid fa-motorcycle text-sm"></i>
+                </div>
+                <div class="min-w-0">
+                    <div class="flex items-center gap-1.5">
+                        <span class="font-extrabold text-sm tracking-tight leading-none">ShopeeFood</span>
+                        <span class="bg-white/20 text-[10px] font-bold px-1.5 py-0.5 rounded text-white leading-none">DRIVER</span>
+                    </div>
+                    <div class="flex items-center gap-1 mt-0.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span class="text-[11px] font-semibold text-white/90 leading-tight truncate">Online • Siap Order</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick City Selector & GPS Button -->
+            <div class="flex items-center gap-1.5 shrink-0">
+                <!-- GPS Locate -->
+                <button onclick="locateUserGPS()" title="Gunakan Lokasi GPS Saya" class="w-8 h-8 rounded-xl bg-white/15 hover:bg-white/25 active:scale-95 text-white flex items-center justify-center transition shadow-xs">
+                    <i class="fa-solid fa-location-crosshairs text-xs"></i>
+                </button>
+
+                <!-- City Dropdown -->
+                <div class="relative">
+                    <select id="cityPreset" class="pl-2 pr-6 py-1 bg-white/15 hover:bg-white/25 text-white text-xs font-bold rounded-xl border border-white/20 focus:outline-none cursor-pointer appearance-none">
+                        <optgroup label="Kalimantan (Zona III)">
+                            <option value="-3.3194,114.5908,Banjarmasin" class="text-slate-900" selected>Banjarmasin</option>
+                            <option value="-3.4420,114.8315,Banjarbaru" class="text-slate-900">Banjarbaru</option>
+                            <option value="-1.2654,116.8312,Balikpapan" class="text-slate-900">Balikpapan</option>
+                            <option value="-0.5022,117.1536,Samarinda" class="text-slate-900">Samarinda</option>
+                            <option value="-0.0263,109.3425,Pontianak" class="text-slate-900">Pontianak</option>
+                            <option value="-2.2136,113.9108,Palangkaraya" class="text-slate-900">Palangkaraya</option>
+                        </optgroup>
+                        <optgroup label="Jawa & Lainnya">
+                            <option value="-6.2088,106.8456,Jakarta" class="text-slate-900">Jakarta</option>
+                            <option value="-6.9175,107.6191,Bandung" class="text-slate-900">Bandung</option>
+                            <option value="-7.7956,110.3695,Yogyakarta" class="text-slate-900">Yogyakarta</option>
+                            <option value="-7.2575,112.7521,Surabaya" class="text-slate-900">Surabaya</option>
+                            <option value="-8.6705,115.2126,Denpasar" class="text-slate-900">Bali</option>
+                            <option value="3.5952,98.6722,Medan" class="text-slate-900">Medan</option>
+                            <option value="-5.1477,119.4327,Makassar" class="text-slate-900">Makassar</option>
+                        </optgroup>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-white/80">
+                        <i class="fa-solid fa-chevron-down text-[9px]"></i>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- ==================================================================== -->
+        <!-- 2. MAIN APP CONTENT VIEWS (SWITCHED BY BOTTOM TABS) -->
+        <!-- ==================================================================== -->
+        <main class="flex-1 relative overflow-hidden flex flex-col">
+
+            <!-- ---------------------------------------------------------------- -->
+            <!-- TAB 1: PETA & ORDER AKTIF (LAYAR UTAMA DRIVER) -->
+            <!-- ---------------------------------------------------------------- -->
+            <section id="viewMap" class="w-full h-full flex flex-col relative">
+                
+                <!-- Map Container -->
+                <div id="map" class="w-full flex-1 z-0"></div>
+
+                <!-- Floating Top Bar on Map: Mode Click Indicator -->
+                <div class="absolute top-3 left-3 right-3 z-20 flex items-center justify-between gap-2 pointer-events-none">
+                    <!-- Mode Indicator Pill (Pointer events auto) -->
+                    <button id="mapModePill" onclick="toggleActiveClickMode()" class="pointer-events-auto bg-slate-900/90 backdrop-blur-md text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 border border-white/10 active:scale-95 transition">
+                        <span id="mapModeDot" class="w-2 h-2 rounded-full bg-shopee-500 animate-ping"></span>
+                        <span id="mapModeText">Mode: 1. Ambil (Resto)</span>
+                        <i class="fa-solid fa-arrow-right-arrow-left text-[10px] text-amber-400 ml-0.5"></i>
+                    </button>
+
+                    <!-- Map Style Switcher -->
+                    <div class="pointer-events-auto bg-white/95 backdrop-blur-md rounded-xl shadow-md border border-slate-200 px-2 py-1 flex items-center gap-1">
+                        <select id="tileLayerSelect" onchange="switchTileProvider(this.value)" class="text-[11px] font-bold text-slate-700 bg-transparent focus:outline-none cursor-pointer">
+                            <option value="googleRoad" selected>🗺️ Jalan Raya</option>
+                            <option value="googleTraffic">🚦 Live Traffic</option>
+                            <option value="googleHybrid">🛰️ Satelit Asli</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Floating Quick Action Buttons on Map Bottom-Right -->
+                <div class="absolute bottom-[230px] right-3 z-20 flex flex-col gap-2">
+                    <!-- Tukar Titik 1 & 2 -->
+                    <button onclick="swapPoints()" title="Tukar Titik 1 & 2" class="w-10 h-10 rounded-2xl bg-white text-slate-800 shadow-xl border border-slate-200 flex items-center justify-center hover:bg-slate-50 active:scale-90 transition">
+                        <i class="fa-solid fa-arrow-down-up-across-line text-shopee-600 text-sm"></i>
+                    </button>
+                    <!-- Focus Markers -->
+                    <button onclick="fitAllMarkers()" title="Pusatkan Peta" class="w-10 h-10 rounded-2xl bg-white text-slate-800 shadow-xl border border-slate-200 flex items-center justify-center hover:bg-slate-50 active:scale-90 transition">
+                        <i class="fa-solid fa-expand text-slate-700 text-sm"></i>
+                    </button>
+                </div>
+
+                <!-- ============================================================ -->
+                <!-- FLOATING DRIVER ORDER BOTTOM SHEET (NATIVE DRIVER APP STYLE) -->
+                <!-- ============================================================ -->
+                <div class="bg-white rounded-t-3xl shadow-[0_-8px_30px_rgba(0,0,0,0.18)] border-t border-slate-200/80 p-3.5 z-20 shrink-0 flex flex-col gap-2.5 transition-all">
+                    
+                    <!-- Sheet Drag Handle & Status Line -->
+                    <div class="flex items-center justify-between -mt-1 mb-0.5">
+                        <div class="flex items-center gap-1.5">
+                            <span id="routeStatusBadge" class="inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                Rute Jalan Raya (OSRM)
+                            </span>
+                            <span id="activeSchemePill" class="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                                Reguler • 1 Order
+                            </span>
+                        </div>
+                        <div id="estDuration" class="text-xs font-bold text-slate-600">
+                            <i class="fa-regular fa-clock text-slate-400 mr-1"></i>~6 mnt
+                        </div>
+                    </div>
+
+                    <!-- Compact Route Card: Point 1 & Point 2 -->
+                    <div class="bg-slate-50 rounded-2xl p-2.5 border border-slate-200/90 flex flex-col gap-2">
+                        <!-- Point 1 (Resto / Tempat Ambil) -->
+                        <div class="flex items-start gap-2.5 cursor-pointer" onclick="switchTab('points')">
+                            <div class="w-6 h-6 rounded-full bg-shopee-600 text-white font-extrabold text-[11px] flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                                1
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-shopee-600">Ambil Makanan (Resto)</span>
+                                    <span class="text-[10px] font-semibold text-shopee-600 hover:underline">Ubah <i class="fa-solid fa-pen text-[8px]"></i></span>
+                                </div>
+                                <div id="summaryMerchantAddr" class="font-bold text-xs text-slate-900 truncate">
+                                    Jl. Lambung Mangkurat, Banjarmasin
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Route Connecting Line with Distance -->
+                        <div class="flex items-center pl-3 -my-1">
+                            <div class="w-0.5 h-3 bg-slate-300 ml-[-1px]"></div>
+                            <div class="ml-4 text-[10px] font-mono font-bold text-slate-400" id="summaryDistanceKm">
+                                2.50 km
+                            </div>
+                        </div>
+
+                        <!-- Point 2 (Customer / Alamat Antar) -->
+                        <div class="flex items-start gap-2.5 cursor-pointer" onclick="switchTab('points')">
+                            <div class="w-6 h-6 rounded-full bg-emerald-600 text-white font-extrabold text-[11px] flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                                2
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Antar ke Alamat (Pemesan)</span>
+                                    <span class="text-[10px] font-semibold text-emerald-600 hover:underline">Ubah <i class="fa-solid fa-pen text-[8px]"></i></span>
+                                </div>
+                                <div id="summaryCust1Addr" class="font-bold text-xs text-slate-900 truncate">
+                                    Jl. Ahmad Yani KM 2.5, Banjarmasin
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Driver Net Income & Stats -->
+                    <div class="flex items-center justify-between px-1">
+                        <div>
+                            <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Bersih Diterima Driver</div>
+                            <div class="flex items-baseline gap-1.5">
+                                <span id="mapNetDriverDisplay" class="text-2xl font-black text-emerald-600 font-mono tracking-tight">Rp6.400</span>
+                                <span class="text-[10px] text-slate-400 font-medium">(bersih cair)</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <button onclick="addCurrentOrderToDaily()" class="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-[11px] font-bold flex items-center gap-1 active:scale-95 transition shadow-xs">
+                                <i class="fa-solid fa-plus text-amber-600 text-[10px]"></i>
+                                <span>Catat ke Poin</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons: Google Maps Navigation & Swap Points -->
+                    <div class="grid grid-cols-4 gap-2 pt-0.5">
+                        <button onclick="swapPoints()" class="col-span-1 py-2.5 bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-bold text-xs rounded-xl transition flex flex-col items-center justify-center shadow-xs border border-slate-200/80" title="Tukar Titik 1 & 2">
+                            <i class="fa-solid fa-arrow-down-up-across-line text-amber-600 text-sm mb-0.5"></i>
+                            <span class="text-[10px] leading-none">Tukar 1⇄2</span>
+                        </button>
+                        
+                        <!-- Main CTA: Buka di App Google Maps Navigasi -->
+                        <a id="btnOpenInGoogleMaps" href="#" target="_blank" class="col-span-3 py-2.5 px-3 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-md shadow-blue-600/30 transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-diamond-turn-right text-base text-white"></i>
+                            <span>Mulai Navigasi di Google Maps</span>
+                            <i class="fa-solid fa-arrow-up-right-from-square text-[10px] opacity-75"></i>
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ---------------------------------------------------------------- -->
+            <!-- TAB 2: UBAH LOKASI (TITIK 1 AMBIL & TITIK 2 ANTAR) -->
+            <!-- ---------------------------------------------------------------- -->
+            <section id="viewPoints" class="w-full h-full overflow-y-auto p-4 flex flex-col gap-3.5 hidden pb-20">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="font-extrabold text-slate-900 text-base flex items-center gap-2">
+                            <i class="fa-solid fa-map-location-dot text-shopee-600"></i>
+                            Ubah Titik Jemput & Antar
+                        </h2>
+                        <p class="text-xs text-slate-500">Ketik nama resto/alamat atau tekan tombol GPS Saya.</p>
+                    </div>
+                    <button onclick="resetDefaultBanjarmasin()" class="text-xs font-bold text-shopee-600 hover:underline flex items-center gap-1">
+                        <i class="fa-solid fa-rotate-left"></i> Reset
+                    </button>
+                </div>
+
+                <!-- Global Search Bar across Indonesia -->
+                <div class="relative">
+                    <input id="searchInput" type="text" placeholder="Cari alamat atau nama tempat di Indonesia..." 
+                        class="w-full pl-9 pr-14 py-2.5 bg-white text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-shopee-500 shadow-xs">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                        <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                    </div>
+                    <div class="absolute inset-y-0 right-0 flex items-center pr-2 gap-1">
+                        <button id="clearSearchBtn" onclick="clearSearchInput()" title="Bersihkan" class="hidden text-slate-400 hover:text-slate-600 p-1">
+                            <i class="fa-solid fa-circle-xmark text-xs"></i>
+                        </button>
+                        <button id="searchBtn" title="Cari" class="text-shopee-600 p-1">
+                            <i class="fa-solid fa-arrow-right text-xs"></i>
+                        </button>
+                    </div>
+                    <!-- Results Box -->
+                    <div id="searchResults" class="hidden absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl max-h-56 overflow-y-auto z-40 text-xs divide-y divide-slate-100"></div>
+                </div>
+
+                <!-- Dynamic Waypoint Cards (Titik 1 & 2) -->
+                <div id="waypointsList" class="space-y-3">
+                    <!-- Populated by JavaScript -->
+                </div>
+
+                <!-- Bottom Back to Map CTA -->
+                <button onclick="switchTab('map')" class="w-full py-3 bg-shopee-600 hover:bg-shopee-700 active:scale-95 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-shopee-600/25 transition flex items-center justify-center gap-2 mt-2">
+                    <i class="fa-solid fa-map"></i>
+                    <span>Terapkan & Lihat di Peta</span>
+                </button>
+            </section>
+
+            <!-- ---------------------------------------------------------------- -->
+            <!-- TAB 3: KALKULATOR & RINCIAN ARGO DRIVER -->
+            <!-- ---------------------------------------------------------------- -->
+            <section id="viewFare" class="w-full h-full overflow-y-auto p-4 flex flex-col gap-3.5 hidden pb-20">
+                <div>
+                    <h2 class="font-extrabold text-slate-900 text-base flex items-center gap-2">
+                        <i class="fa-solid fa-calculator text-shopee-600"></i>
+                        Kalkulator Argo ShopeeFood
+                    </h2>
+                    <p class="text-xs text-slate-500">Hitung pendapatan bersih driver berdasarkan jarak & jenis order.</p>
+                </div>
+
+                <!-- 1. Scheme Selection (Reguler vs Hub) -->
+                <div class="bg-white rounded-2xl p-3 border border-slate-200 shadow-xs space-y-2">
+                    <label class="block text-xs font-bold text-slate-700">1. Skema Kemitraan Driver:</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="btnSchemeReguler" onclick="setScheme('reguler')" class="p-2.5 rounded-xl border text-left flex flex-col gap-0.5 bg-shopee-50 border-shopee-600 text-shopee-700 shadow-xs">
+                            <span class="font-bold text-xs"><i class="fa-solid fa-gauge-high mr-1"></i>Reguler</span>
+                            <span class="text-[10px] text-slate-500 font-normal">Tarif dasar 4 km + argo per km</span>
+                        </button>
+                        <button id="btnSchemeHub" onclick="setScheme('hub')" class="p-2.5 rounded-xl border border-slate-200 text-left flex flex-col gap-0.5 text-slate-600 hover:bg-slate-50">
+                            <span class="font-bold text-xs"><i class="fa-solid fa-bolt mr-1"></i>Hub / Shift</span>
+                            <span class="text-[10px] text-slate-500 font-normal">Tarif flat jarak dekat ≤ 4.5 km</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. Order Count Selection (Single / Double / Triple) -->
+                <div class="bg-white rounded-2xl p-3 border border-slate-200 shadow-xs space-y-2">
+                    <label class="block text-xs font-bold text-slate-700">2. Jumlah Order Sekali Jalan (Gabungan):</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button id="btnOrder1" onclick="setOrderCount(1)" class="p-2 rounded-xl border text-center font-bold text-xs bg-shopee-50 border-shopee-600 text-shopee-700 shadow-xs">
+                            Single (1)
+                            <span id="subOrder1" class="block text-[10px] font-normal opacity-80">Min. Rp6.400</span>
+                        </button>
+                        <button id="btnOrder2" onclick="setOrderCount(2)" class="p-2 rounded-xl border border-slate-200 text-center font-bold text-xs text-slate-600 hover:bg-slate-50">
+                            Double (2)
+                            <span id="subOrder2" class="block text-[10px] font-normal opacity-80">+Rp2.000</span>
+                        </button>
+                        <button id="btnOrder3" onclick="setOrderCount(3)" class="p-2 rounded-xl border border-slate-200 text-center font-bold text-xs text-slate-600 hover:bg-slate-50">
+                            Triple (3)
+                            <span id="subOrder3" class="block text-[10px] font-normal opacity-80">+Rp4.000</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3. Tip Pelanggan -->
+                <div class="bg-white rounded-2xl p-3 border border-slate-200 shadow-xs flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-bold text-slate-800 block">Tip Pelanggan</span>
+                        <span class="text-[10px] text-slate-400">100% milik driver (tanpa komisi)</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button onclick="setTip(0)" class="tip-btn px-2 py-1 rounded-lg text-xs font-bold bg-slate-900 text-white" data-tip="0">Rp0</button>
+                        <button onclick="setTip(2000)" class="tip-btn px-2 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-600" data-tip="2000">+2rb</button>
+                        <button onclick="setTip(5000)" class="tip-btn px-2 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-600" data-tip="5000">+5rb</button>
+                    </div>
+                </div>
+
+                <!-- 4. Quick Distance Slider Testing -->
+                <div class="bg-white rounded-2xl p-3 border border-slate-200 shadow-xs space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-800">Uji Jarak Manual:</span>
+                        <span id="sliderDistanceVal" class="text-sm font-black text-shopee-600 font-mono">2.5 km</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] text-slate-400 font-mono">0.5km</span>
+                        <input id="manualDistanceSlider" type="range" min="0.5" max="20" step="0.1" value="2.5" oninput="onDistanceSliderChange(this.value)" class="flex-1 accent-shopee-600 cursor-pointer">
+                        <span class="text-[10px] text-slate-400 font-mono">20km</span>
+                    </div>
+                </div>
+
+                <!-- 5. Transparent Mathematical Breakdown for Drivers -->
+                <div class="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl p-4 shadow-md space-y-2.5">
+                    <div class="flex items-center justify-between border-b border-white/10 pb-2">
+                        <span class="text-xs font-bold text-slate-300">Rincian Perhitungan Argo</span>
+                        <span class="text-[11px] font-mono text-emerald-400" id="mathStepDistance">2.50 km</span>
+                    </div>
+
+                    <div class="space-y-1.5 text-xs">
+                        <div class="flex justify-between text-slate-300">
+                            <span>1. Tarif Dasar (≤ 4 km)</span>
+                            <span id="mathStepBaseGross" class="font-mono font-semibold">Rp8.000</span>
+                        </div>
+                        <div class="flex justify-between text-slate-300">
+                            <span>2. Tambahan Jarak (> 4 km)</span>
+                            <span id="mathStepExtraGross" class="font-mono font-semibold">Rp0</span>
+                        </div>
+                        <div class="flex justify-between text-slate-200 font-bold pt-1 border-t border-white/10">
+                            <span>Total Argo Kotor</span>
+                            <span id="mathStepTotalGross" class="font-mono">Rp8.000</span>
+                        </div>
+                        <div class="flex justify-between text-rose-300">
+                            <span id="mathLabelCommission">Potongan Shopee (20%)</span>
+                            <span id="mathStepCommission" class="font-mono">- Rp1.600</span>
+                        </div>
+                        <div id="tipRow" class="hidden justify-between text-amber-300">
+                            <span>Tip Pelanggan (100% Driver)</span>
+                            <span id="mathStepTip" class="font-mono">+ Rp0</span>
+                        </div>
+                    </div>
+
+                    <div class="pt-2 border-t border-white/20 flex items-center justify-between">
+                        <div>
+                            <div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Uang Bersih Driver</div>
+                            <div id="finalDriverPerKmInfo" class="text-[10px] text-emerald-400 font-mono">Rp2.560 / km</div>
+                        </div>
+                        <div id="finalDriverNet" class="text-3xl font-black text-emerald-400 font-mono tracking-tight">
+                            Rp6.400
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Parameter Editor Collapsible -->
+                <button onclick="toggleParamEditor()" class="text-xs text-slate-500 hover:text-slate-800 font-semibold flex items-center justify-center gap-1.5 py-1">
+                    <i class="fa-solid fa-sliders text-xs"></i>
+                    <span>Atur Angka Rumus (Opsional)</span>
+                </button>
+                <div id="paramEditorPanel" class="hidden bg-white p-3 rounded-xl border border-slate-200 text-xs space-y-2">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[10px] text-slate-500 block">Tarif Dasar Rp</label>
+                            <input id="inputBaseGross" type="number" value="8000" onchange="recalculateMath()" class="w-full p-1.5 border rounded text-xs font-mono">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-500 block">Tarif per Km Rp</label>
+                            <input id="inputPerKmGross" type="number" value="2000" onchange="recalculateMath()" class="w-full p-1.5 border rounded text-xs font-mono">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-500 block">Komisi Shopee (%)</label>
+                            <input id="inputCommissionPct" type="number" value="20" onchange="recalculateMath()" class="w-full p-1.5 border rounded text-xs font-mono">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-500 block">Batas Km Dasar</label>
+                            <input id="inputBaseKm" type="number" value="4" onchange="recalculateMath()" class="w-full p-1.5 border rounded text-xs font-mono">
+                        </div>
+                    </div>
+                    <button onclick="resetDefaultParams()" class="text-[11px] text-shopee-600 font-bold hover:underline">Reset Nilai Standar</button>
+                </div>
+            </section>
+
+            <!-- ---------------------------------------------------------------- -->
+            <!-- TAB 4: TARGET & BONUS HARIAN DRIVER -->
+            <!-- ---------------------------------------------------------------- -->
+            <section id="viewTarget" class="w-full h-full overflow-y-auto p-4 flex flex-col gap-3.5 hidden pb-20">
+                <div>
+                    <h2 class="font-extrabold text-slate-900 text-base flex items-center gap-2">
+                        <i class="fa-solid fa-trophy text-amber-500"></i>
+                        Target & Bonus Insentif Harian
+                    </h2>
+                    <p class="text-xs text-slate-500">Pantau poin harian dan perolehan bonus mitra driver ShopeeFood.</p>
+                </div>
+
+                <!-- Incentive Tier Card -->
+                <div class="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl p-4 shadow-md space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <span class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Total Poin Hari Ini</span>
+                            <div id="dailyPointsDisplay" class="text-3xl font-black text-amber-400 font-mono">0 Poin</div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Bonus Tercapai</span>
+                            <div id="dailyBonusDisplay" class="text-xl font-bold text-emerald-400 font-mono">+Rp0</div>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div>
+                        <div class="w-full bg-slate-700 h-2.5 rounded-full overflow-hidden">
+                            <div id="pointProgressBar" class="bg-gradient-to-r from-amber-400 to-emerald-400 h-full w-0 transition-all duration-300"></div>
+                        </div>
+                        <div class="flex justify-between text-[10px] text-slate-400 mt-1 font-mono">
+                            <span id="tier800">800p (+20rb)</span>
+                            <span id="tier1200">1.200p (+35rb)</span>
+                            <span id="tier1600">1.600p (+55rb)</span>
+                        </div>
+                    </div>
+
+                    <div id="tierCountdownText" class="text-xs text-amber-200 font-medium bg-white/10 p-2 rounded-xl">
+                        800 poin lagi menuju Tier 1 (+Rp20.000)
+                    </div>
+                </div>
+
+                <!-- Summary Total Pendapatan Hari Ini -->
+                <div class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-xs space-y-2">
+                    <span class="text-xs font-bold text-slate-800 block">Ringkasan Dompet Hari Ini:</span>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div class="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                            <span class="text-[10px] text-slate-400 block">Total Order</span>
+                            <span id="dailyOrderCount" class="font-bold font-mono text-slate-800">0 Order</span>
+                        </div>
+                        <div class="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                            <span class="text-[10px] text-slate-400 block">Argo Bersih</span>
+                            <span id="dailyArgoNet" class="font-bold font-mono text-emerald-600">Rp0</span>
+                        </div>
+                    </div>
+                    <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-800">Total Masuk Dompet:</span>
+                        <span id="dailyGrandTotal" class="text-xl font-black text-emerald-600 font-mono">Rp0</span>
+                    </div>
+                </div>
+
+                <!-- Order Action: Record & Clear -->
+                <div class="flex items-center gap-2">
+                    <button onclick="addCurrentOrderToDaily()" class="flex-1 py-2.5 bg-shopee-600 hover:bg-shopee-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 active:scale-95">
+                        <i class="fa-solid fa-plus text-xs"></i>
+                        <span>+ Tambah Order Saat Ini</span>
+                    </button>
+                    <button onclick="clearDailyOrders()" class="px-3 py-2.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 font-bold text-xs rounded-xl transition border border-slate-200" title="Reset Catatan Harian">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+
+                <!-- Daily Order Log List -->
+                <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+                    <div class="p-2.5 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700 flex justify-between">
+                        <span>Catatan Order Hari Ini</span>
+                        <span class="text-[10px] text-slate-400 font-normal">Riwayat Simulasi</span>
+                    </div>
+                    <div id="dailyLogList" class="divide-y divide-slate-100 text-xs max-h-48 overflow-y-auto">
+                        <div class="p-3 text-center text-slate-400 italic">Belum ada order dicatat. Klik tombol "+ Tambah Order Saat Ini".</div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- ==================================================================== -->
+        <!-- 3. MOBILE BOTTOM NAVIGATION (THUMB FRIENDLY TABS) -->
+        <!-- ==================================================================== -->
+        <nav class="bg-white border-t border-slate-200 px-2 py-1.5 shrink-0 z-30 shadow-lg grid grid-cols-4 gap-1">
+            <!-- Tab 1: Peta -->
+            <button id="navTab_map" onclick="switchTab('map')" class="flex flex-col items-center justify-center py-1 rounded-xl text-shopee-600 font-bold transition">
+                <i class="fa-solid fa-map-location text-lg mb-0.5"></i>
+                <span class="text-[10px] leading-none">Peta & Rute</span>
+            </button>
+
+            <!-- Tab 2: Ubah Titik -->
+            <button id="navTab_points" onclick="switchTab('points')" class="flex flex-col items-center justify-center py-1 rounded-xl text-slate-400 hover:text-slate-700 font-semibold transition">
+                <i class="fa-solid fa-location-dot text-lg mb-0.5"></i>
+                <span class="text-[10px] leading-none">Ubah Titik</span>
+            </button>
+
+            <!-- Tab 3: Argo Ongkir -->
+            <button id="navTab_fare" onclick="switchTab('fare')" class="flex flex-col items-center justify-center py-1 rounded-xl text-slate-400 hover:text-slate-700 font-semibold transition">
+                <i class="fa-solid fa-calculator text-lg mb-0.5"></i>
+                <span class="text-[10px] leading-none">Kalkulator</span>
+            </button>
+
+            <!-- Tab 4: Target Harian -->
+            <button id="navTab_target" onclick="switchTab('target')" class="flex flex-col items-center justify-center py-1 rounded-xl text-slate-400 hover:text-slate-700 font-semibold transition">
+                <i class="fa-solid fa-trophy text-lg mb-0.5"></i>
+                <span class="text-[10px] leading-none">Target Poin</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Floating Feedback Toast Notification -->
+    <div id="feedbackToast" class="fixed bottom-16 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 text-white text-xs font-semibold px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-2 border border-slate-700 transition duration-300 opacity-0 pointer-events-none transform translate-y-3">
+        <i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>
+        <span id="feedbackToastMsg">Pesan</span>
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- 4. JAVASCRIPT LOGIC & DRIVER APPLICATION ENGINE -->
+    <!-- ==================================================================== -->
+    <script>
+        // State Management
+        const state = {
+            cityCenter: [-3.3194, 114.5908],
+            cityName: 'Banjarmasin',
+            clickMode: 'merchant', // 'merchant', 'cust1', 'cust2', 'cust3'
+            activeTab: 'map',
+            scheme: 'reguler',     // 'reguler' | 'hub'
+            orderCount: 1,         // 1 (Single), 2 (Double), 3 (Triple)
+            tipAmount: 0,
+            routeDistanceKm: 2.5,
+            routeDurationMin: 6,
+            isOsrmActive: true,
+            routingProvider: 'OSRM (Jalan Raya)',
+
+            // Coordinates for Merchant & Customers
+            waypoints: {
+                merchant: { 
+                    lat: -3.3194, 
+                    lng: 114.5908, 
+                    title: 'Titik 1: Ambil Makanan',
+                    label: 'Restoran / Tempat Ambil',
+                    address: 'Jl. Lambung Mangkurat, Banjarmasin'
+                },
+                cust1: { 
+                    lat: -3.3285, 
+                    lng: 114.6085, 
+                    title: 'Titik 2: Antar ke Alamat',
+                    label: 'Alamat Pengantaran (Pemesan)',
+                    address: 'Jl. Ahmad Yani KM 2.5, Banjarmasin'
+                },
+                cust2: { 
+                    lat: -3.3340, 
+                    lng: 114.6140, 
+                    title: 'Titik 3: Antar Alamat 2',
+                    label: 'Alamat Pengantaran 2',
+                    address: 'Jl. Gatot Subroto, Banjarmasin'
+                },
+                cust3: { 
+                    lat: -3.3390, 
+                    lng: 114.6050, 
+                    title: 'Titik 4: Antar Alamat 3',
+                    label: 'Alamat Pengantaran 3',
+                    address: 'Jl. Pramuka, Banjarmasin'
+                }
+            },
+
+            lastCalc: {
+                netDriver: 6400,
+                grossDriver: 8000,
+                customerPay: 9500
+            },
+
+            dailyOrders: []
+        };
+
+        // Caches & Timers
+        let lastSearchResults = [];
+        let searchDebounceTimer = null;
+        const pointSearchCaches = {};
+        const pointSearchTimers = {};
+        const reverseGeocodeTimers = {};
+
+        // Leaflet Map objects
+        var map;
+        var currentTileLayer;
+        var routePolyline;
+        var routeCasingPolyline;
+        const markers = {};
+
+        // Tile Providers (Google Maps Genuine Layers)
+        const tileProviders = {
+            googleRoad: {
+                name: 'Google Maps (Jalan Raya Asli)',
+                url: 'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+                options: { maxZoom: 20, subdomains: ['0', '1', '2', '3'], attribution: '&copy; Google Maps' }
+            },
+            googleTraffic: {
+                name: 'Google Maps (Live Traffic)',
+                url: 'https://mt{s}.google.com/vt?lyrs=m,traffic&x={x}&y={y}&z={z}',
+                options: { maxZoom: 20, subdomains: ['0', '1', '2', '3'], attribution: '&copy; Google Maps Traffic' }
+            },
+            googleHybrid: {
+                name: 'Google Maps (Satelit Asli)',
+                url: 'https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+                options: { maxZoom: 20, subdomains: ['0', '1', '2', '3'], attribution: '&copy; Google Maps Satellite' }
+            }
+        };
+
+        function switchTileProvider(providerKey) {
+            const p = tileProviders[providerKey] || tileProviders.googleRoad;
+            if (currentTileLayer && map.hasLayer(currentTileLayer)) {
+                map.removeLayer(currentTileLayer);
+            }
+            currentTileLayer = L.tileLayer(p.url, p.options).addTo(map);
+            currentTileLayer.bringToBack();
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function formatRp(num) {
+            return 'Rp' + Math.round(num).toLocaleString('id-ID');
+        }
+
+        // ============================================================================
+        // MOBILE TAB SWITCHER
+        // ============================================================================
+        function switchTab(tabId) {
+            state.activeTab = tabId;
+            const tabs = ['map', 'points', 'fare', 'target'];
+
+            tabs.forEach(t => {
+                const viewEl = document.getElementById(`view${capitalize(t)}`);
+                const navBtn = document.getElementById(`navTab_${t}`);
+                if (t === tabId) {
+                    if (viewEl) viewEl.classList.remove('hidden');
+                    if (navBtn) {
+                        navBtn.className = 'flex flex-col items-center justify-center py-1 rounded-xl text-shopee-600 font-bold transition';
+                    }
+                } else {
+                    if (viewEl) viewEl.classList.add('hidden');
+                    if (navBtn) {
+                        navBtn.className = 'flex flex-col items-center justify-center py-1 rounded-xl text-slate-400 hover:text-slate-700 font-semibold transition';
+                    }
+                }
+            });
+
+            if (tabId === 'map') {
+                setTimeout(() => {
+                    if (map) {
+                        map.invalidateSize();
+                        fitAllMarkers();
+                    }
+                }, 120);
+            } else if (tabId === 'points') {
+                renderWaypointsList();
+            }
+        }
+
+        function capitalize(s) {
+            return s.charAt(0).toUpperCase() + s.slice(1);
+        }
+
+        // ============================================================================
+        // LEAFLET MAP & NEEDLE MARKERS
+        // ============================================================================
+        function createCustomPinIcon(headBgClass, borderTopColor, iconClass, badgeText) {
+            return L.divIcon({
+                className: 'bg-transparent border-0',
+                html: `
+                    <div class="pin-wrapper">
+                        <div class="pin-head ${headBgClass}">
+                            <i class="${iconClass}"></i>
+                        </div>
+                        <div class="pin-point" style="border-top: 8px solid ${borderTopColor};"></div>
+                        <span class="pin-badge">${badgeText}</span>
+                    </div>
+                `,
+                iconSize: [36, 48],
+                iconAnchor: [18, 44],
+                popupAnchor: [0, -44]
+            });
+        }
+
+        function initMap() {
+            if (map) map.remove();
+
+            map = L.map('map', {
+                center: state.cityCenter,
+                zoom: 13,
+                zoomControl: false // Cleaner for mobile screen
+            });
+
+            // Pasang Google Maps Asli (Jalan Raya)
+            switchTileProvider('googleRoad');
+
+            // Markers 1 & 2
+            markers.merchant = L.marker([state.waypoints.merchant.lat, state.waypoints.merchant.lng], {
+                draggable: true,
+                icon: createCustomPinIcon('bg-shopee-600 pin-pulse', '#EE4D2D', 'fa-solid fa-utensils', '1. AMBIL')
+            }).addTo(map).bindPopup(buildPopupContent('merchant')).openPopup();
+
+            markers.cust1 = L.marker([state.waypoints.cust1.lat, state.waypoints.cust1.lng], {
+                draggable: true,
+                icon: createCustomPinIcon('bg-emerald-600', '#059669', 'fa-solid fa-house-user', '2. ANTAR')
+            }).addTo(map).bindPopup(buildPopupContent('cust1'));
+
+            markers.cust2 = L.marker([state.waypoints.cust2.lat, state.waypoints.cust2.lng], {
+                draggable: true,
+                icon: createCustomPinIcon('bg-blue-600', '#2563eb', 'fa-solid fa-house-user', '3. ANTAR 2')
+            }).bindPopup(buildPopupContent('cust2'));
+
+            markers.cust3 = L.marker([state.waypoints.cust3.lat, state.waypoints.cust3.lng], {
+                draggable: true,
+                icon: createCustomPinIcon('bg-purple-600', '#9333ea', 'fa-solid fa-house-user', '4. ANTAR 3')
+            }).bindPopup(buildPopupContent('cust3'));
+
+            // Drag Events
+            Object.keys(markers).forEach(key => {
+                markers[key].on('dragend', function (e) {
+                    const pos = e.target.getLatLng();
+                    state.waypoints[key].lat = pos.lat;
+                    state.waypoints[key].lng = pos.lng;
+                    triggerReverseGeocode(key);
+                    updateRouteAndCalculate(key);
+                    const name = key === 'merchant' ? '1. Ambil (Resto)' : '2. Antar (Alamat)';
+                    showFeedbackToast(`Lokasi ${name} dipindahkan!`);
+                });
+            });
+
+            // Map click
+            map.on('click', function (e) {
+                const targetKey = state.clickMode;
+                state.waypoints[targetKey].lat = e.latlng.lat;
+                state.waypoints[targetKey].lng = e.latlng.lng;
+                markers[targetKey].setLatLng(e.latlng);
+                triggerReverseGeocode(targetKey);
+                updateRouteAndCalculate(targetKey);
+                const name = targetKey === 'merchant' ? '1. Ambil (Resto)' : '2. Antar (Alamat)';
+                showFeedbackToast(`${name} disetel ke lokasi klik peta!`);
+            });
+
+            setTimeout(() => {
+                map.invalidateSize();
+            }, 300);
+
+            // Trigger deteksi awal
+            triggerReverseGeocode('merchant');
+            triggerReverseGeocode('cust1');
+            updateRouteAndCalculate('merchant');
+        }
+
+        function buildPopupContent(key) {
+            const pt = state.waypoints[key];
+            const isMerchant = key === 'merchant';
+            const badgeBg = isMerchant ? 'bg-shopee-600' : 'bg-emerald-600';
+            const title = isMerchant ? '1. Ambil Makanan (Resto)' : '2. Antar ke Alamat (Pemesan)';
+
+            return `
+                <div class="min-w-[190px] text-xs">
+                    <div class="flex items-center justify-between gap-1 mb-1">
+                        <span class="px-2 py-0.5 rounded-md font-bold text-[10px] text-white ${badgeBg}">${title}</span>
+                    </div>
+                    <div class="font-bold text-slate-800 text-[11px] mb-1 leading-snug">
+                        ${escapeHtml(pt.address || 'Memuat nama jalan...')}
+                    </div>
+                    <div class="text-[10px] text-slate-500 font-mono mb-2">
+                        Lat: ${pt.lat.toFixed(4)}, Lng: ${pt.lng.toFixed(4)}
+                    </div>
+                    <div class="grid grid-cols-2 gap-1 pt-1.5 border-t border-slate-100">
+                        <button onclick="setPointToGPS('${key}')" class="px-2 py-1 bg-emerald-50 text-emerald-700 font-bold rounded text-[10px] text-center">
+                            GPS Saya
+                        </button>
+                        <button onclick="swapPoints()" class="px-2 py-1 bg-amber-50 text-amber-800 font-bold rounded text-[10px] text-center">
+                            Tukar 1⇄2
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function refreshAllPopups(openKey = null) {
+            Object.keys(markers).forEach(k => {
+                if (markers[k].getPopup()) {
+                    markers[k].setPopupContent(buildPopupContent(k));
+                }
+            });
+            if (openKey && markers[openKey] && map.hasLayer(markers[openKey])) {
+                markers[openKey].openPopup();
+            }
+        }
+
+        function fitAllMarkers() {
+            const activeKeys = getActiveWaypointKeys();
+            const group = new L.featureGroup(activeKeys.map(k => markers[k]));
+            map.fitBounds(group.getBounds().pad(0.22));
+        }
+
+        function getActiveWaypointKeys() {
+            const keys = ['merchant', 'cust1'];
+            if (state.orderCount >= 2) keys.push('cust2');
+            if (state.orderCount >= 3) keys.push('cust3');
+            return keys;
+        }
+
+        // ============================================================================
+        // CLICK MODE & HELPER BANNER
+        // ============================================================================
+        function setClickMode(mode) {
+            state.clickMode = mode;
+            const dot = document.getElementById('mapModeDot');
+            const text = document.getElementById('mapModeText');
+
+            if (mode === 'merchant') {
+                if (dot) dot.className = 'w-2 h-2 rounded-full bg-shopee-500 animate-ping';
+                if (text) text.textContent = 'Mode: 1. Ambil (Resto)';
+            } else {
+                if (dot) dot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-ping';
+                if (text) text.textContent = 'Mode: 2. Antar (Alamat)';
+            }
+            renderWaypointsList();
+        }
+
+        function toggleActiveClickMode() {
+            if (state.clickMode === 'merchant') {
+                setClickMode('cust1');
+                showFeedbackToast('Mode Aktif: 2. Antar (Klik peta untuk taruh alamat)');
+            } else {
+                setClickMode('merchant');
+                showFeedbackToast('Mode Aktif: 1. Ambil (Klik peta untuk taruh resto)');
+            }
+        }
+
+        // ============================================================================
+        // CORE FEATURE: TUKAR TITIK 1 & TITIK 2
+        // ============================================================================
+        function swapPoints() {
+            const m = state.waypoints.merchant;
+            const c = state.waypoints.cust1;
+
+            const tempLat = m.lat;
+            const tempLng = m.lng;
+            const tempAddress = m.address;
+
+            m.lat = c.lat;
+            m.lng = c.lng;
+            m.address = c.address;
+
+            c.lat = tempLat;
+            c.lng = tempLng;
+            c.address = tempAddress;
+
+            markers.merchant.setLatLng([m.lat, m.lng]);
+            markers.cust1.setLatLng([c.lat, c.lng]);
+
+            updateRouteAndCalculate();
+            fitAllMarkers();
+            showFeedbackToast('Titik 1 (Ambil) dan Titik 2 (Antar) berhasil ditukar!');
+        }
+
+        // ============================================================================
+        // GPS & REVERSE GEOCODING
+        // ============================================================================
+        function setPointToGPS(key) {
+            if (!navigator.geolocation) {
+                alert('Browser Anda tidak mendukung Geolocation GPS.');
+                return;
+            }
+            const ptLabel = key === 'merchant' ? '1. Ambil (Resto)' : '2. Antar (Alamat)';
+            showFeedbackToast(`Mendeteksi GPS untuk ${ptLabel}...`);
+
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+                    state.waypoints[key].lat = lat;
+                    state.waypoints[key].lng = lng;
+
+                    markers[key].setLatLng([lat, lng]);
+                    map.panTo([lat, lng]);
+
+                    triggerReverseGeocode(key);
+                    updateRouteAndCalculate(key);
+                    showFeedbackToast(`${ptLabel} berhasil disetel ke GPS Anda!`);
+                },
+                (err) => {
+                    alert('Gagal mendeteksi lokasi GPS (Izin ditolak atau timeout).');
+                },
+                { enableHighAccuracy: true, timeout: 7000 }
+            );
+        }
+
+        function triggerReverseGeocode(key) {
+            clearTimeout(reverseGeocodeTimers[key]);
+            reverseGeocodeTimers[key] = setTimeout(async () => {
+                const pt = state.waypoints[key];
+                if (!pt) return;
+
+                try {
+                    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${pt.lat}&lon=${pt.lng}&zoom=18&addressdetails=1`;
+                    const res = await fetch(url, { headers: { 'Accept-Language': 'id', 'User-Agent': 'ShopeeFoodDriver/1.0' } });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && data.display_name) {
+                            const addr = data.address || {};
+                            const road = addr.road || addr.pedestrian || addr.suburb || addr.neighbourhood || data.display_name.split(',')[0];
+                            const city = addr.city || addr.town || addr.municipality || state.cityName;
+                            const cleanName = `${road}, ${city}`;
+                            state.waypoints[key].address = cleanName;
+
+                            // Update UI
+                            updateSummaryAddressText();
+                            refreshAllPopups();
+                        }
+                    }
+                } catch (e) {
+                    // Non-critical fallback
+                }
+            }, 350);
+        }
+
+        function updateSummaryAddressText() {
+            const mEl = document.getElementById('summaryMerchantAddr');
+            const cEl = document.getElementById('summaryCust1Addr');
+            if (mEl) mEl.textContent = state.waypoints.merchant.address || 'Titik Resto';
+            if (cEl) cEl.textContent = state.waypoints.cust1.address || 'Titik Antar';
+        }
+
+        // ============================================================================
+        // OSRM ROUTING WITH MULTI-SERVER FALLBACK
+        // ============================================================================
+        async function updateRouteAndCalculate(openPopupKey = null) {
+            const activeKeys = getActiveWaypointKeys();
+
+            // Marker visibility
+            if (state.orderCount >= 2) {
+                if (!map.hasLayer(markers.cust2)) markers.cust2.addTo(map);
+            } else {
+                if (map.hasLayer(markers.cust2)) map.removeLayer(markers.cust2);
+            }
+
+            if (state.orderCount >= 3) {
+                if (!map.hasLayer(markers.cust3)) markers.cust3.addTo(map);
+            } else {
+                if (map.hasLayer(markers.cust3)) map.removeLayer(markers.cust3);
+            }
+
+            const coordsQuery = activeKeys.map(k => `${state.waypoints[k].lng.toFixed(6)},${state.waypoints[k].lat.toFixed(6)}`).join(';');
+            const osrmPrimaryUrl = `https://router.project-osrm.org/route/v1/driving/${coordsQuery}?overview=full&geometries=geojson`;
+            const osrmSecondaryUrl = `https://routing.openstreetmap.de/routed-car/route/v1/driving/${coordsQuery}?overview=full&geometries=geojson`;
+
+            let routeSuccess = false;
+
+            // Percobaan 1: Server Utama
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3500);
+                const response = await fetch(osrmPrimaryUrl, { signal: controller.signal });
+                clearTimeout(timeoutId);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+                        const route = data.routes[0];
+                        state.routeDistanceKm = route.distance / 1000;
+                        state.routeDurationMin = Math.max(2, Math.round(route.duration / 60));
+                        state.isOsrmActive = true;
+                        state.routingProvider = 'Rute Jalan Raya (OSRM)';
+                        drawRouteLine(route.geometry.coordinates.map(c => [c[1], c[0]]), true);
+                        routeSuccess = true;
+                    }
+                }
+            } catch (err) {}
+
+            // Percobaan 2: Server Cadangan
+            if (!routeSuccess) {
+                try {
+                    const controller2 = new AbortController();
+                    const timeoutId2 = setTimeout(() => controller2.abort(), 3500);
+                    const response2 = await fetch(osrmSecondaryUrl, { signal: controller2.signal });
+                    clearTimeout(timeoutId2);
+
+                    if (response2.ok) {
+                        const data2 = await response2.json();
+                        if (data2.code === 'Ok' && data2.routes && data2.routes.length > 0) {
+                            const route = data2.routes[0];
+                            state.routeDistanceKm = route.distance / 1000;
+                            state.routeDurationMin = Math.max(2, Math.round(route.duration / 60));
+                            state.isOsrmActive = true;
+                            state.routingProvider = 'OSM Mirror (Jalan Raya)';
+                            drawRouteLine(route.geometry.coordinates.map(c => [c[1], c[0]]), true);
+                            routeSuccess = true;
+                        }
+                    }
+                } catch (err2) {}
+            }
+
+            // Fallback: Haversine
+            if (!routeSuccess) {
+                state.isOsrmActive = false;
+                state.routingProvider = 'Estimasi Offline (Haversine)';
+                let totalStraight = 0;
+                const pts = [];
+
+                for (let i = 0; i < activeKeys.length; i++) {
+                    const pt = state.waypoints[activeKeys[i]];
+                    pts.push(pt);
+                    if (i > 0) {
+                        const prev = state.waypoints[activeKeys[i - 1]];
+                        totalStraight += calculateHaversineKm(prev.lat, prev.lng, pt.lat, pt.lng);
+                    }
+                }
+
+                state.routeDistanceKm = Math.max(0.3, totalStraight * 1.3);
+                state.routeDurationMin = Math.max(3, Math.round(state.routeDistanceKm * 2.5));
+                drawRouteLine(generateRealisticCurvedPath(pts), false);
+            }
+
+            // Update UI
+            updateSummaryAddressText();
+            document.getElementById('summaryDistanceKm').textContent = `${state.routeDistanceKm.toFixed(2)} km`;
+            const slider = document.getElementById('manualDistanceSlider');
+            if (slider) {
+                slider.value = state.routeDistanceKm.toFixed(1);
+                document.getElementById('sliderDistanceVal').textContent = `${state.routeDistanceKm.toFixed(1)} km`;
+            }
+
+            recalculateMath();
+            refreshAllPopups(openPopupKey);
+            updateGoogleMapsNavigationLink();
+        }
+
+        function calculateHaversineKm(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+        }
+
+        function generateRealisticCurvedPath(pts) {
+            const result = [];
+            for (let i = 0; i < pts.length - 1; i++) {
+                const p1 = pts[i];
+                const p2 = pts[i + 1];
+                result.push([p1.lat, p1.lng]);
+                const midLat = (p1.lat + p2.lat) / 2;
+                const midLng = (p1.lng + p2.lng) / 2;
+                const dLat = p2.lat - p1.lat;
+                const dLng = p2.lng - p1.lng;
+                const factor = (i % 2 === 0 ? 0.22 : -0.22);
+                result.push([midLat - (dLng * factor), midLng + (dLat * factor)]);
+            }
+            result.push([pts[pts.length - 1].lat, pts[pts.length - 1].lng]);
+            return result;
+        }
+
+        function drawRouteLine(latLngs, isRoadGeometry) {
+            if (routeCasingPolyline) map.removeLayer(routeCasingPolyline);
+            if (routePolyline) map.removeLayer(routePolyline);
+
+            routeCasingPolyline = L.polyline(latLngs, {
+                color: '#0f172a',
+                weight: 7,
+                opacity: 0.8,
+                lineCap: 'round',
+                lineJoin: 'round'
+            }).addTo(map);
+
+            routePolyline = L.polyline(latLngs, {
+                color: isRoadGeometry ? '#EE4D2D' : '#f59e0b',
+                weight: 5,
+                opacity: 0.95,
+                dashArray: isRoadGeometry ? null : '6, 6',
+                lineCap: 'round',
+                lineJoin: 'round'
+            }).addTo(map);
+        }
+
+        function updateGoogleMapsNavigationLink() {
+            const m = state.waypoints.merchant;
+            const activeKeys = getActiveWaypointKeys();
+            const dest = state.waypoints[activeKeys[activeKeys.length - 1]];
+
+            let waypointsParam = '';
+            if (activeKeys.length > 2) {
+                const intermediate = activeKeys.slice(1, activeKeys.length - 1).map(k => `${state.waypoints[k].lat},${state.waypoints[k].lng}`).join('|');
+                waypointsParam = `&waypoints=${encodeURIComponent(intermediate)}`;
+            }
+
+            const url = `https://www.google.com/maps/dir/?api=1&origin=${m.lat.toFixed(6)},${m.lng.toFixed(6)}&destination=${dest.lat.toFixed(6)},${dest.lng.toFixed(6)}${waypointsParam}&travelmode=driving`;
+            const btn = document.getElementById('btnOpenInGoogleMaps');
+            if (btn) btn.href = url;
+        }
+
+        // ============================================================================
+        // SHOPEEFOOD MATHEMATICAL ENGINE
+        // ============================================================================
+        function recalculateMath() {
+            const dist = Math.max(0.1, state.routeDistanceKm);
+            const baseKmLimit = parseFloat(document.getElementById('inputBaseKm')?.value) || 4;
+            const commissionPct = parseFloat(document.getElementById('inputCommissionPct')?.value) || 20;
+            const baseGrossInput = parseFloat(document.getElementById('inputBaseGross')?.value) || 8000;
+            const perKmGrossInput = parseFloat(document.getElementById('inputPerKmGross')?.value) || 2000;
+
+            let baseGross = 0;
+            let extraKm = 0;
+            let extraGross = 0;
+            let totalGross = 0;
+            let commissionRp = 0;
+            let netDriverBeforeTip = 0;
+
+            if (state.scheme === 'reguler') {
+                const multiOrderAddon = state.orderCount === 2 ? 2500 : (state.orderCount === 3 ? 5000 : 0);
+                baseGross = baseGrossInput + multiOrderAddon;
+                extraKm = Math.max(0, dist - baseKmLimit);
+                extraGross = extraKm * perKmGrossInput;
+                totalGross = baseGross + extraGross;
+            } else {
+                // Skema Hub
+                if (state.orderCount === 1) baseGross = 6500;
+                else if (state.orderCount === 2) baseGross = 9750;
+                else baseGross = 12750;
+
+                extraKm = Math.max(0, dist - 4.5);
+                extraGross = extraKm * 2000;
+                totalGross = baseGross + extraGross;
+            }
+
+            commissionRp = totalGross * (commissionPct / 100);
+            netDriverBeforeTip = totalGross - commissionRp;
+            const finalNetWithTip = netDriverBeforeTip + state.tipAmount;
+
+            state.lastCalc = {
+                netDriver: finalNetWithTip,
+                grossDriver: totalGross
+            };
+
+            // Update Header & Card
+            document.getElementById('mapNetDriverDisplay').textContent = formatRp(finalNetWithTip);
+            document.getElementById('finalDriverNet').textContent = formatRp(finalNetWithTip);
+            document.getElementById('estDuration').innerHTML = `<i class="fa-regular fa-clock mr-1 text-slate-400"></i>~${state.routeDurationMin} mnt`;
+
+            // Update Status Badge
+            const routeBadge = document.getElementById('routeStatusBadge');
+            if (routeBadge) {
+                routeBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full ${state.isOsrmActive ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}"></span> ${state.routingProvider}`;
+            }
+
+            const activePill = document.getElementById('activeSchemePill');
+            if (activePill) {
+                activePill.textContent = `${state.scheme === 'reguler' ? 'Reguler' : 'Hub'} • ${state.orderCount} Order`;
+            }
+
+            // Update Breakdown in Tab 3
+            document.getElementById('mathStepDistance').textContent = `${dist.toFixed(2)} km`;
+            document.getElementById('mathStepBaseGross').textContent = formatRp(baseGross);
+            document.getElementById('mathStepExtraGross').textContent = extraGross > 0 ? `+ ${formatRp(extraGross)}` : 'Rp0';
+            document.getElementById('mathStepTotalGross').textContent = formatRp(totalGross);
+            document.getElementById('mathLabelCommission').textContent = `Potongan Shopee (${commissionPct}%)`;
+            document.getElementById('mathStepCommission').textContent = `- ${formatRp(commissionRp)}`;
+
+            const tipRow = document.getElementById('tipRow');
+            if (state.tipAmount > 0) {
+                tipRow.classList.remove('hidden');
+                tipRow.classList.add('flex');
+                document.getElementById('mathStepTip').textContent = `+ ${formatRp(state.tipAmount)}`;
+            } else {
+                tipRow.classList.add('hidden');
+                tipRow.classList.remove('flex');
+            }
+
+            const effectivePerKm = finalNetWithTip / dist;
+            document.getElementById('finalDriverPerKmInfo').textContent = `${formatRp(effectivePerKm)} / km`;
+        }
+
+        function setScheme(scheme) {
+            state.scheme = scheme;
+            const btnReg = document.getElementById('btnSchemeReguler');
+            const btnHub = document.getElementById('btnSchemeHub');
+
+            if (scheme === 'reguler') {
+                btnReg.className = 'p-2.5 rounded-xl border text-left flex flex-col gap-0.5 bg-shopee-50 border-shopee-600 text-shopee-700 shadow-xs';
+                btnHub.className = 'p-2.5 rounded-xl border border-slate-200 text-left flex flex-col gap-0.5 text-slate-600 hover:bg-slate-50';
+                document.getElementById('subOrder1').textContent = 'Min. Rp6.400';
+            } else {
+                btnHub.className = 'p-2.5 rounded-xl border text-left flex flex-col gap-0.5 bg-shopee-50 border-shopee-600 text-shopee-700 shadow-xs';
+                btnReg.className = 'p-2.5 rounded-xl border border-slate-200 text-left flex flex-col gap-0.5 text-slate-600 hover:bg-slate-50';
+                document.getElementById('subOrder1').textContent = 'Flat Rp5.200';
+            }
+            recalculateMath();
+            showFeedbackToast(`Skema diubah ke: ${scheme.toUpperCase()}`);
+        }
+
+        function setOrderCount(count) {
+            state.orderCount = count;
+            [1, 2, 3].forEach(n => {
+                const btn = document.getElementById(`btnOrder${n}`);
+                if (n === count) {
+                    btn.className = 'p-2 rounded-xl border text-center font-bold text-xs bg-shopee-50 border-shopee-600 text-shopee-700 shadow-xs';
+                } else {
+                    btn.className = 'p-2 rounded-xl border border-slate-200 text-center font-bold text-xs text-slate-600 hover:bg-slate-50';
+                }
+            });
+
+            updateRouteAndCalculate();
+            showFeedbackToast(`Jumlah order diubah ke: ${count} Pesanan`);
+        }
+
+        function setTip(amount) {
+            state.tipAmount = amount;
+            document.querySelectorAll('.tip-btn').forEach(btn => {
+                if (parseInt(btn.dataset.tip) === amount) {
+                    btn.className = 'tip-btn px-2 py-1 rounded-lg text-xs font-bold bg-slate-900 text-white';
+                } else {
+                    btn.className = 'tip-btn px-2 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-600';
+                }
+            });
+            recalculateMath();
+        }
+
+        function onDistanceSliderChange(val) {
+            state.routeDistanceKm = parseFloat(val);
+            state.routeDurationMin = Math.max(2, Math.round(state.routeDistanceKm * 2.5));
+            document.getElementById('sliderDistanceVal').textContent = `${parseFloat(val).toFixed(1)} km`;
+            document.getElementById('summaryDistanceKm').textContent = `${parseFloat(val).toFixed(1)} km`;
+            recalculateMath();
+        }
+
+        function toggleParamEditor() {
+            document.getElementById('paramEditorPanel').classList.toggle('hidden');
+        }
+
+        function resetDefaultParams() {
+            document.getElementById('inputBaseKm').value = 4;
+            document.getElementById('inputCommissionPct').value = 20;
+            document.getElementById('inputBaseGross').value = 8000;
+            document.getElementById('inputPerKmGross').value = 2000;
+            recalculateMath();
+        }
+
+        // ============================================================================
+        // RENDER WAYPOINTS LIST (TAB 2: UBAH TITIK)
+        // ============================================================================
+        function renderWaypointsList() {
+            const container = document.getElementById('waypointsList');
+            if (!container) return;
+
+            const m = state.waypoints.merchant;
+            const c1 = state.waypoints.cust1;
+
+            container.innerHTML = `
+                <!-- TITIK 1: AMBIL MAKANAN (RESTO) -->
+                <div class="bg-white rounded-2xl p-3.5 border ${state.clickMode === 'merchant' ? 'border-shopee-500 ring-2 ring-shopee-200 shadow-sm' : 'border-slate-200'} space-y-2.5 transition">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-6 h-6 rounded-full bg-shopee-600 text-white font-extrabold text-xs flex items-center justify-center">1</span>
+                            <span class="font-extrabold text-xs text-shopee-600 uppercase tracking-tight">Tempat Ambil Makanan (Resto)</span>
+                        </div>
+                        <button onclick="setPointToGPS('merchant')" class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-[11px] rounded-lg border border-emerald-200 flex items-center gap-1">
+                            <i class="fa-solid fa-location-crosshairs text-emerald-600"></i>
+                            <span>GPS Saya</span>
+                        </button>
+                    </div>
+
+                    <!-- Search Input -->
+                    <div class="relative">
+                        <input id="pointSearchInput_merchant" type="text" placeholder="Ketik nama resto (KFC, Gacoan, Jl. ...)"
+                            oninput="searchPointAddress('merchant')"
+                            onkeydown="if(event.key==='Enter') searchPointAddress('merchant')"
+                            class="w-full pl-8 pr-12 py-2 bg-slate-50 hover:bg-white focus:bg-white text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-shopee-500 font-medium">
+                        <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-3 text-slate-400 text-xs"></i>
+                        <button onclick="searchPointAddress('merchant')" class="absolute right-2 top-2 px-2 py-1 bg-shopee-600 text-white rounded-lg text-[10px] font-bold">Cari</button>
+                        <div id="pointSearchResults_merchant" class="hidden absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto z-40 text-xs divide-y divide-slate-100"></div>
+                    </div>
+
+                    <!-- Current Address Display -->
+                    <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 text-xs flex items-start gap-2">
+                        <i class="fa-solid fa-location-dot text-shopee-600 mt-0.5 shrink-0"></i>
+                        <div class="min-w-0 flex-1">
+                            <span class="text-[10px] text-slate-400 block font-medium">Alamat Terdeteksi:</span>
+                            <span class="font-bold text-slate-800 line-clamp-1">${escapeHtml(m.address || 'Belum terdeteksi')}</span>
+                        </div>
+                        <button onclick="triggerReverseGeocode('merchant')" class="text-slate-400 hover:text-shopee-600 p-1 text-[11px]" title="Refresh Alamat">
+                            <i class="fa-solid fa-arrows-rotate"></i>
+                        </button>
+                    </div>
+
+                    <!-- Quick Preset Chips -->
+                    <div class="flex items-center gap-1.5 flex-wrap pt-0.5">
+                        <span class="text-[10px] text-slate-400 font-medium">Contoh:</span>
+                        <button onclick="applyQuickPresetPlace('merchant', 'Mie Gacoan', -0.004, 0.003)" class="px-2 py-0.5 bg-slate-100 hover:bg-shopee-100 hover:text-shopee-700 text-slate-600 rounded-lg text-[10px] font-semibold">Mie Gacoan</button>
+                        <button onclick="applyQuickPresetPlace('merchant', 'Fast Food KFC/McD', 0.003, -0.002)" class="px-2 py-0.5 bg-slate-100 hover:bg-shopee-100 hover:text-shopee-700 text-slate-600 rounded-lg text-[10px] font-semibold">Fast Food</button>
+                        <button onclick="applyQuickPresetPlace('merchant', 'Kopi Kenangan', 0.002, 0.004)" class="px-2 py-0.5 bg-slate-100 hover:bg-shopee-100 hover:text-shopee-700 text-slate-600 rounded-lg text-[10px] font-semibold">Kopi</button>
+                    </div>
+                </div>
+
+                <!-- BIG SWAP BUTTON BETWEEN 1 & 2 -->
+                <div class="flex justify-center -my-1">
+                    <button onclick="swapPoints(); renderWaypointsList();" class="px-4 py-2 bg-gradient-to-r from-shopee-600 to-emerald-600 hover:from-shopee-700 hover:to-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md active:scale-95 transition flex items-center gap-2">
+                        <i class="fa-solid fa-arrow-down-up-across-line text-sm"></i>
+                        <span>Tukar Titik: 1 (Ambil) ⇄ 2 (Antar)</span>
+                    </button>
+                </div>
+
+                <!-- TITIK 2: ANTAR KE ALAMAT (PEMESAN) -->
+                <div class="bg-white rounded-2xl p-3.5 border ${state.clickMode === 'cust1' ? 'border-emerald-500 ring-2 ring-emerald-200 shadow-sm' : 'border-slate-200'} space-y-2.5 transition">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-6 h-6 rounded-full bg-emerald-600 text-white font-extrabold text-xs flex items-center justify-center">2</span>
+                            <span class="font-extrabold text-xs text-emerald-600 uppercase tracking-tight">Alamat Pengantaran (Pemesan)</span>
+                        </div>
+                        <button onclick="setPointToGPS('cust1')" class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-[11px] rounded-lg border border-emerald-200 flex items-center gap-1">
+                            <i class="fa-solid fa-location-crosshairs text-emerald-600"></i>
+                            <span>GPS Saya</span>
+                        </button>
+                    </div>
+
+                    <!-- Search Input -->
+                    <div class="relative">
+                        <input id="pointSearchInput_cust1" type="text" placeholder="Ketik alamat rumah / kantor / jalan..."
+                            oninput="searchPointAddress('cust1')"
+                            onkeydown="if(event.key==='Enter') searchPointAddress('cust1')"
+                            class="w-full pl-8 pr-12 py-2 bg-slate-50 hover:bg-white focus:bg-white text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
+                        <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-3 text-slate-400 text-xs"></i>
+                        <button onclick="searchPointAddress('cust1')" class="absolute right-2 top-2 px-2 py-1 bg-emerald-600 text-white rounded-lg text-[10px] font-bold">Cari</button>
+                        <div id="pointSearchResults_cust1" class="hidden absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto z-40 text-xs divide-y divide-slate-100"></div>
+                    </div>
+
+                    <!-- Current Address Display -->
+                    <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 text-xs flex items-start gap-2">
+                        <i class="fa-solid fa-location-dot text-emerald-600 mt-0.5 shrink-0"></i>
+                        <div class="min-w-0 flex-1">
+                            <span class="text-[10px] text-slate-400 block font-medium">Alamat Terdeteksi:</span>
+                            <span class="font-bold text-slate-800 line-clamp-1">${escapeHtml(c1.address || 'Belum terdeteksi')}</span>
+                        </div>
+                        <button onclick="triggerReverseGeocode('cust1')" class="text-slate-400 hover:text-emerald-600 p-1 text-[11px]" title="Refresh Alamat">
+                            <i class="fa-solid fa-arrows-rotate"></i>
+                        </button>
+                    </div>
+
+                    <!-- Quick Preset Chips -->
+                    <div class="flex items-center gap-1.5 flex-wrap pt-0.5">
+                        <span class="text-[10px] text-slate-400 font-medium">Contoh:</span>
+                        <button onclick="applyQuickPresetPlace('cust1', 'Komplek Perumahan Warga', -0.015, 0.012)" class="px-2 py-0.5 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-700 text-slate-600 rounded-lg text-[10px] font-semibold">Perumahan</button>
+                        <button onclick="applyQuickPresetPlace('cust1', 'Area Perkantoran', -0.008, 0.022)" class="px-2 py-0.5 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-700 text-slate-600 rounded-lg text-[10px] font-semibold">Kantor</button>
+                        <button onclick="applyQuickDistance(2.0)" class="px-2 py-0.5 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-700 text-slate-600 rounded-lg text-[10px] font-semibold">Dekat (~2 km)</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ============================================================================
+        // SEARCH FUNCTIONS (INDIVIDUAL POINT & GLOBAL)
+        // ============================================================================
+        function searchPointAddress(key) {
+            clearTimeout(pointSearchTimers[key]);
+            pointSearchTimers[key] = setTimeout(async () => {
+                const input = document.getElementById(`pointSearchInput_${key}`);
+                const resultsBox = document.getElementById(`pointSearchResults_${key}`);
+                if (!input || !resultsBox) return;
+
+                const query = input.value.trim();
+                if (!query) {
+                    resultsBox.classList.add('hidden');
+                    return;
+                }
+
+                resultsBox.classList.remove('hidden');
+                resultsBox.innerHTML = `
+                    <div class="p-2.5 text-slate-500 flex items-center gap-2">
+                        <i class="fa-solid fa-spinner fa-spin text-shopee-600"></i>
+                        <span>Mencari "<b>${escapeHtml(query)}</b>"...</span>
+                    </div>
+                `;
+
+                try {
+                    const centerPt = state.waypoints[key];
+                    const viewbox = `&viewbox=${centerPt.lng - 0.4},${centerPt.lat + 0.4},${centerPt.lng + 0.4},${centerPt.lat - 0.4}`;
+                    const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=id&limit=5&q=${encodeURIComponent(query)}${viewbox}`;
+                    const res = await fetch(url, { headers: { 'Accept-Language': 'id', 'User-Agent': 'ShopeeFoodDriver/1.0' } });
+                    const places = await res.json();
+
+                    if (!places || places.length === 0) {
+                        resultsBox.innerHTML = `<div class="p-2.5 text-slate-500 italic">Alamat tidak ditemukan. Coba ketik nama jalan lain.</div>`;
+                        return;
+                    }
+
+                    pointSearchCaches[key] = places.map(p => ({
+                        lat: parseFloat(p.lat),
+                        lng: parseFloat(p.lon),
+                        displayName: p.display_name
+                    }));
+
+                    resultsBox.innerHTML = pointSearchCaches[key].map((p, idx) => `
+                        <div onclick="selectPointSearchResult('${key}', ${idx})" class="p-2 hover:bg-shopee-50 cursor-pointer transition border-b border-slate-100 last:border-b-0">
+                            <div class="font-bold text-slate-800 line-clamp-1">${escapeHtml(p.displayName.split(',')[0])}</div>
+                            <div class="text-[10px] text-slate-500 line-clamp-1">${escapeHtml(p.displayName)}</div>
+                        </div>
+                    `).join('');
+
+                } catch (err) {
+                    resultsBox.innerHTML = `<div class="p-2 text-rose-500">Gagal mengambil data pencarian.</div>`;
+                }
+            }, 360);
+        }
+
+        function selectPointSearchResult(key, index) {
+            const item = pointSearchCaches[key] && pointSearchCaches[key][index];
+            if (!item) return;
+
+            const resultsBox = document.getElementById(`pointSearchResults_${key}`);
+            if (resultsBox) resultsBox.classList.add('hidden');
+
+            state.waypoints[key].lat = item.lat;
+            state.waypoints[key].lng = item.lng;
+            state.waypoints[key].address = item.displayName.split(',').slice(0, 2).join(',');
+
+            markers[key].setLatLng([item.lat, item.lng]);
+            map.panTo([item.lat, item.lng]);
+
+            updateRouteAndCalculate(key);
+            renderWaypointsList();
+            showFeedbackToast(`${key === 'merchant' ? '1. Ambil (Resto)' : '2. Antar (Alamat)'} berhasil diubah!`);
+        }
+
+        function applyQuickPresetPlace(key, name, latOffset, lngOffset) {
+            const baseLat = state.cityCenter[0];
+            const baseLng = state.cityCenter[1];
+
+            state.waypoints[key].lat = baseLat + latOffset;
+            state.waypoints[key].lng = baseLng + lngOffset;
+            state.waypoints[key].address = `${name}, ${state.cityName}`;
+
+            markers[key].setLatLng([state.waypoints[key].lat, state.waypoints[key].lng]);
+            map.panTo([state.waypoints[key].lat, state.waypoints[key].lng]);
+
+            triggerReverseGeocode(key);
+            updateRouteAndCalculate(key);
+            renderWaypointsList();
+            showFeedbackToast(`Lokasi diubah ke: ${name}`);
+        }
+
+        function applyQuickDistance(approxStraightKm) {
+            const m = state.waypoints.merchant;
+            const deltaDeg = approxStraightKm / 111;
+            state.waypoints.cust1.lat = m.lat - (deltaDeg * 0.7);
+            state.waypoints.cust1.lng = m.lng + (deltaDeg * 0.7);
+
+            markers.cust1.setLatLng([state.waypoints.cust1.lat, state.waypoints.cust1.lng]);
+            triggerReverseGeocode('cust1');
+            fitAllMarkers();
+            updateRouteAndCalculate('cust1');
+            renderWaypointsList();
+        }
+
+        // Global Search
+        function clearSearchInput() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('clearSearchBtn').classList.add('hidden');
+            document.getElementById('searchResults').classList.add('hidden');
+        }
+
+        async function searchLocationIndonesia() {
+            const input = document.getElementById('searchInput');
+            const query = input.value.trim();
+            const resultsBox = document.getElementById('searchResults');
+            const clearBtn = document.getElementById('clearSearchBtn');
+
+            if (!query) {
+                resultsBox.classList.add('hidden');
+                clearBtn.classList.add('hidden');
+                return;
+            }
+
+            clearBtn.classList.remove('hidden');
+            resultsBox.classList.remove('hidden');
+            resultsBox.innerHTML = `<div class="p-3 text-slate-500 flex items-center gap-2"><i class="fa-solid fa-spinner fa-spin text-shopee-600"></i><span>Mencari "<b>${escapeHtml(query)}</b>"...</span></div>`;
+
+            try {
+                const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=id&limit=5&q=${encodeURIComponent(query)}`;
+                const res = await fetch(url, { headers: { 'Accept-Language': 'id' } });
+                const places = await res.json();
+
+                if (!places || places.length === 0) {
+                    resultsBox.innerHTML = `<div class="p-3 text-slate-500">Tempat tidak ditemukan. Coba ketik nama lain.</div>`;
+                    return;
+                }
+
+                lastSearchResults = places.map(p => ({
+                    lat: parseFloat(p.lat),
+                    lng: parseFloat(p.lon),
+                    displayName: p.display_name
+                }));
+
+                resultsBox.innerHTML = lastSearchResults.map((p, idx) => `
+                    <div class="p-2.5 hover:bg-shopee-50 flex flex-col gap-1">
+                        <div class="font-bold text-slate-800 line-clamp-1">${escapeHtml(p.displayName.split(',')[0])}</div>
+                        <div class="text-[10px] text-slate-500 line-clamp-1">${escapeHtml(p.displayName)}</div>
+                        <div class="flex items-center gap-1.5 pt-1">
+                            <span class="text-[10px] text-slate-400 font-medium">Pasang di:</span>
+                            <button onclick="applySearchResult(${idx}, 'merchant')" class="px-2 py-0.5 bg-shopee-600 text-white rounded font-bold text-[10px]">1. Ambil (Resto)</button>
+                            <button onclick="applySearchResult(${idx}, 'cust1')" class="px-2 py-0.5 bg-emerald-600 text-white rounded font-bold text-[10px]">2. Antar (Alamat)</button>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (err) {
+                resultsBox.innerHTML = `<div class="p-3 text-rose-500">Gagal mencari alamat.</div>`;
+            }
+        }
+
+        function applySearchResult(index, targetKey) {
+            const item = lastSearchResults[index];
+            if (!item) return;
+
+            document.getElementById('searchResults').classList.add('hidden');
+            state.waypoints[targetKey].lat = item.lat;
+            state.waypoints[targetKey].lng = item.lng;
+            state.waypoints[targetKey].address = item.displayName.split(',').slice(0, 2).join(',');
+
+            markers[targetKey].setLatLng([item.lat, item.lng]);
+            map.panTo([item.lat, item.lng]);
+
+            triggerReverseGeocode(targetKey);
+            updateRouteAndCalculate(targetKey);
+            renderWaypointsList();
+            showFeedbackToast(`${targetKey === 'merchant' ? '1. Ambil' : '2. Antar'} disetel ke: ${escapeHtml(state.waypoints[targetKey].address)}`);
+        }
+
+        // ============================================================================
+        // CITY & GPS
+        // ============================================================================
+        function changeCityCenter(lat, lng, cityName) {
+            state.cityCenter = [lat, lng];
+            state.cityName = cityName || 'Indonesia';
+
+            state.waypoints.merchant.lat = lat;
+            state.waypoints.merchant.lng = lng;
+            state.waypoints.merchant.address = `Pusat Kota ${state.cityName}`;
+
+            state.waypoints.cust1.lat = lat - 0.009;
+            state.waypoints.cust1.lng = lng + 0.015;
+            state.waypoints.cust1.address = `Area Pemukiman ${state.cityName}`;
+
+            Object.keys(markers).forEach(k => {
+                markers[k].setLatLng([state.waypoints[k].lat, state.waypoints[k].lng]);
+                triggerReverseGeocode(k);
+            });
+
+            fitAllMarkers();
+            updateRouteAndCalculate('merchant');
+            renderWaypointsList();
+            showFeedbackToast(`Kota diubah ke: ${state.cityName}`);
+        }
+
+        function resetDefaultBanjarmasin() {
+            document.getElementById('cityPreset').value = '-3.3194,114.5908,Banjarmasin';
+            changeCityCenter(-3.3194, 114.5908, 'Banjarmasin');
+        }
+
+        function locateUserGPS() {
+            if (!navigator.geolocation) {
+                alert('Browser Anda tidak mendukung Geolocation.');
+                return;
+            }
+            showFeedbackToast('Mencari posisi GPS Anda...');
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+                    changeCityCenter(lat, lng, 'Lokasi GPS Saya');
+                },
+                (err) => {
+                    alert('Tidak dapat mendeteksi lokasi GPS (Izin ditolak atau timeout).');
+                },
+                { enableHighAccuracy: true, timeout: 6000 }
+            );
+        }
+
+        // ============================================================================
+        // DAILY ORDER & TARGET INCENTIVE
+        // ============================================================================
+        function addCurrentOrderToDaily() {
+            const earnedPoints = 100 * state.orderCount;
+            state.dailyOrders.push({
+                id: Date.now(),
+                scheme: state.scheme === 'reguler' ? 'Reguler' : 'Hub',
+                orderCount: state.orderCount,
+                distanceKm: state.routeDistanceKm,
+                netIncome: state.lastCalc.netDriver,
+                points: earnedPoints
+            });
+            renderDailySimulator();
+            showFeedbackToast(`Order berhasil dicatat! (+${earnedPoints} Poin, +${formatRp(state.lastCalc.netDriver)})`);
+        }
+
+        function clearDailyOrders() {
+            if (confirm('Hapus semua riwayat catatan order hari ini?')) {
+                state.dailyOrders = [];
+                renderDailySimulator();
+                showFeedbackToast('Catatan harian berhasil direset.');
+            }
+        }
+
+        function removeDailyOrder(id) {
+            state.dailyOrders = state.dailyOrders.filter(o => o.id !== id);
+            renderDailySimulator();
+        }
+
+        function renderDailySimulator() {
+            let totalOrders = 0;
+            let totalArgoNet = 0;
+            let totalPoints = 0;
+
+            state.dailyOrders.forEach(o => {
+                totalOrders += o.orderCount;
+                totalArgoNet += o.netIncome;
+                totalPoints += o.points;
+            });
+
+            // Target Tier Kalimantan / Zona III
+            let bonusRp = 0;
+            let nextText = '';
+
+            if (totalPoints >= 1600) {
+                bonusRp = 55000;
+                nextText = '🎉 Selamat! Semua Tier Bonus Harian Telah Tercapai (+Rp55.000)!';
+            } else if (totalPoints >= 1200) {
+                bonusRp = 35000;
+                nextText = `${1600 - totalPoints} poin lagi menuju Tier 3 (+Rp55.000)`;
+            } else if (totalPoints >= 800) {
+                bonusRp = 20000;
+                nextText = `${1200 - totalPoints} poin lagi menuju Tier 2 (+Rp35.000)`;
+            } else {
+                nextText = `${800 - totalPoints} poin lagi menuju Tier 1 (+Rp20.000)`;
+            }
+
+            const grandTotal = totalArgoNet + bonusRp;
+
+            document.getElementById('dailyPointsDisplay').textContent = `${totalPoints.toLocaleString('id-ID')} Poin`;
+            document.getElementById('dailyBonusDisplay').textContent = `+${formatRp(bonusRp)}`;
+            document.getElementById('dailyOrderCount').textContent = `${totalOrders} Order`;
+            document.getElementById('dailyArgoNet').textContent = formatRp(totalArgoNet);
+            document.getElementById('dailyGrandTotal').textContent = formatRp(grandTotal);
+
+            const pct = Math.min(100, Math.round((totalPoints / 1600) * 100));
+            document.getElementById('pointProgressBar').style.width = `${pct}%`;
+
+            document.getElementById('tier800').className = totalPoints >= 800 ? 'text-emerald-400 font-bold' : 'text-slate-400';
+            document.getElementById('tier1200').className = totalPoints >= 1200 ? 'text-emerald-400 font-bold' : 'text-slate-400';
+            document.getElementById('tier1600').className = totalPoints >= 1600 ? 'text-emerald-400 font-bold' : 'text-slate-400';
+
+            const countdownEl = document.getElementById('tierCountdownText');
+            if (countdownEl) countdownEl.textContent = nextText;
+
+            const listEl = document.getElementById('dailyLogList');
+            if (state.dailyOrders.length === 0) {
+                listEl.innerHTML = `<div class="p-3 text-center text-slate-400 italic">Belum ada order dicatat. Klik tombol "+ Tambah Order Saat Ini".</div>`;
+                return;
+            }
+
+            listEl.innerHTML = state.dailyOrders.map((item, idx) => `
+                <div class="p-2.5 flex items-center justify-between hover:bg-slate-50">
+                    <div class="flex items-center gap-2">
+                        <span class="w-5 h-5 rounded-full bg-slate-200 text-slate-700 font-bold text-[10px] flex items-center justify-center shrink-0">#${idx + 1}</span>
+                        <div>
+                            <div class="font-bold text-slate-800">${item.scheme} • ${item.distanceKm.toFixed(2)} km</div>
+                            <div class="text-[10px] text-amber-600 font-semibold">+${item.points} Poin</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2.5">
+                        <span class="font-mono font-bold text-emerald-600">${formatRp(item.netIncome)}</span>
+                        <button onclick="removeDailyOrder(${item.id})" class="text-slate-300 hover:text-rose-500 p-1" title="Hapus">
+                            <i class="fa-solid fa-xmark text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ============================================================================
+        // TOAST NOTIFICATION
+        // ============================================================================
+        function showFeedbackToast(msg) {
+            const toast = document.getElementById('feedbackToast');
+            const toastMsg = document.getElementById('feedbackToastMsg');
+            if (!toast || !toastMsg) return;
+
+            toastMsg.textContent = msg;
+            toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-3');
+            clearTimeout(toast.timer);
+            toast.timer = setTimeout(() => {
+                toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-3');
+            }, 2800);
+        }
+
+        // ============================================================================
+        // APP INITIALIZATION
+        // ============================================================================
+        window.addEventListener('DOMContentLoaded', function () {
+            initMap();
+            renderWaypointsList();
+            renderDailySimulator();
+
+            // City Preset Listener
+            document.getElementById('cityPreset').addEventListener('change', function (e) {
+                const [lat, lng, name] = e.target.value.split(',');
+                changeCityCenter(parseFloat(lat), parseFloat(lng), name);
+            });
+
+            // Global search
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', function () {
+                clearTimeout(searchDebounceTimer);
+                searchDebounceTimer = setTimeout(searchLocationIndonesia, 380);
+            });
+            searchInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    clearTimeout(searchDebounceTimer);
+                    searchLocationIndonesia();
+                }
+            });
+            document.getElementById('searchBtn').addEventListener('click', function () {
+                clearTimeout(searchDebounceTimer);
+                searchLocationIndonesia();
+            });
+
+            // Outside click handler
+            document.addEventListener('click', function (e) {
+                const box = document.getElementById('searchResults');
+                const input = document.getElementById('searchInput');
+                if (box && input && !box.contains(e.target) && e.target !== input) {
+                    box.classList.add('hidden');
+                }
+
+                ['merchant', 'cust1'].forEach(k => {
+                    const pBox = document.getElementById(`pointSearchResults_${k}`);
+                    const pInput = document.getElementById(`pointSearchInput_${k}`);
+                    if (pBox && pInput && !pBox.contains(e.target) && e.target !== pInput) {
+                        pBox.classList.add('hidden');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "cleanUrls": true,
+  "routes": [
+    {
+      "src": "/",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/simulator_peta_ongkir_shopeefood",
+      "dest": "/simulator_peta_ongkir_shopeefood.html"
+    }
+  ]
+}
