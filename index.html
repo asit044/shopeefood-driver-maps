@@ -872,22 +872,22 @@
                     </button>
                 </div>
 
-                <!-- 3. Google Maps Platform API Key (Optional) -->
+                <!-- 3. Google Maps Platform API Key (Resmi) -->
                 <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-2.5">
                     <div class="flex items-center justify-between">
                         <span class="font-bold text-slate-800 flex items-center gap-1.5">
                             <i class="fa-brands fa-google text-blue-600"></i>
-                            Google Cloud API Key (Opsional)
+                            Google Maps API Key Resmi
                         </span>
-                        <span class="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                            Zero-Config Siap Pakai
+                        <span id="googleApiKeyStatusBadge" class="text-[10px] text-emerald-700 font-extrabold bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300 flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Key Resmi Aktif
                         </span>
                     </div>
                     <p class="text-[10px] text-slate-500 leading-relaxed">
-                        Aplikasi ini sudah otomatis menyajikan data peta & Live Traffic Google Maps secara langsung. Jika Anda memiliki API Key Google Maps Platform resmi, Anda dapat memasukkannya di bawah ini:
+                        API Key resmi terhubung ke <b>Google Routes API (New)</b> dengan <b>Live Traffic Real-Time</b> khusus motor (ShopeeFood), dan pencarian alamat presisi <b>Google Places API (New)</b>.
                     </p>
                     <div class="space-y-1">
-                        <input id="inputGoogleApiKey" type="password" placeholder="AIzaSy... (Opsional)" class="w-full text-xs font-mono px-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-shopee-600">
+                        <input id="inputGoogleApiKey" type="text" placeholder="AIzaSy..." class="w-full text-xs font-mono px-3 py-2 bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-shopee-600">
                         <div class="flex items-center justify-between text-[10px] text-slate-400 px-1">
                             <span>Tersimpan aman di perangkat Anda (LocalStorage)</span>
                         </div>
@@ -896,8 +896,8 @@
                         <button onclick="saveGoogleMapsApiKey()" class="flex-1 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs active:scale-95 transition">
                             Simpan Pengaturan
                         </button>
-                        <button onclick="resetGoogleMapsApiKey()" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs active:scale-95 transition" title="Reset ke Default">
-                            Reset
+                        <button onclick="resetGoogleMapsApiKey()" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs active:scale-95 transition" title="Reset ke Default Key Resmi">
+                            Reset ke Default
                         </button>
                     </div>
                 </div>
@@ -993,10 +993,12 @@
                 accuracyM: 0,
                 lastTimestamp: null,
                 trafficRefreshIntervalId: null,
-                googleMapsApiKey: localStorage.getItem('google_maps_api_key') || '',
+                googleMapsApiKey: localStorage.getItem('google_maps_api_key') || 'AIzaSyARVuuIQhuyejFmY5qB-c_467I5USh6aeg',
                 engineMode: 'leaflet-traffic'
             }
         };
+
+        const DEFAULT_GOOGLE_MAPS_API_KEY = 'AIzaSyARVuuIQhuyejFmY5qB-c_467I5USh6aeg';
 
         // Caches & Timers
         let lastSearchResults = [];
@@ -1057,7 +1059,7 @@
             if (modal) modal.classList.remove('hidden');
             const apiKeyInput = document.getElementById('inputGoogleApiKey');
             if (apiKeyInput) {
-                apiKeyInput.value = state.realtime.googleMapsApiKey || '';
+                apiKeyInput.value = state.realtime.googleMapsApiKey || DEFAULT_GOOGLE_MAPS_API_KEY;
             }
             updateModalTelemetryUI();
         }
@@ -1070,27 +1072,31 @@
         function saveGoogleMapsApiKey() {
             const apiKeyInput = document.getElementById('inputGoogleApiKey');
             const val = apiKeyInput ? apiKeyInput.value.trim() : '';
-            state.realtime.googleMapsApiKey = val;
+            state.realtime.googleMapsApiKey = val || DEFAULT_GOOGLE_MAPS_API_KEY;
             try {
-                if (val) {
+                if (val && val !== DEFAULT_GOOGLE_MAPS_API_KEY) {
                     localStorage.setItem('google_maps_api_key', val);
-                    showFeedbackToast('API Key Google Maps berhasil disimpan!');
+                    showFeedbackToast('API Key Google Maps kustom disimpan!');
                 } else {
                     localStorage.removeItem('google_maps_api_key');
-                    showFeedbackToast('Kembali ke Google Maps Real-Time Mode default.');
+                    showFeedbackToast('Menggunakan API Key Google Maps resmi default.');
                 }
             } catch (e) {}
+            if (typeof updateRouteAndCalculate === 'function') updateRouteAndCalculate();
             closeGoogleMapsModal();
+            updateModalTelemetryUI();
         }
 
         function resetGoogleMapsApiKey() {
             const apiKeyInput = document.getElementById('inputGoogleApiKey');
-            if (apiKeyInput) apiKeyInput.value = '';
-            state.realtime.googleMapsApiKey = '';
+            if (apiKeyInput) apiKeyInput.value = DEFAULT_GOOGLE_MAPS_API_KEY;
+            state.realtime.googleMapsApiKey = DEFAULT_GOOGLE_MAPS_API_KEY;
             try {
                 localStorage.removeItem('google_maps_api_key');
             } catch (e) {}
-            showFeedbackToast('Pengaturan API Key direset ke default.');
+            if (typeof updateRouteAndCalculate === 'function') updateRouteAndCalculate();
+            showFeedbackToast('API Key direset ke default resmi aktif.');
+            updateModalTelemetryUI();
         }
 
         function refreshTrafficLayer() {
@@ -1308,6 +1314,18 @@
             const acc = document.getElementById('modalDriverAccuracy');
             if (spd) spd.textContent = `${state.realtime.speedKmH || 0} km/jam`;
             if (acc) acc.textContent = `±${state.realtime.accuracyM || 0} m`;
+
+            const badge = document.getElementById('googleApiKeyStatusBadge');
+            const key = state.realtime.googleMapsApiKey || DEFAULT_GOOGLE_MAPS_API_KEY;
+            if (badge) {
+                if (key) {
+                    badge.className = 'text-[10px] text-emerald-700 font-extrabold bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300 flex items-center gap-1';
+                    badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Key Resmi Aktif';
+                } else {
+                    badge.className = 'text-[10px] text-slate-600 font-bold bg-slate-100 px-2 py-0.5 rounded-full border border-slate-300';
+                    badge.textContent = 'Tidak Ada Key';
+                }
+            }
         }
 
         function handleGoogleMapsNavigation(e) {
@@ -1823,31 +1841,94 @@
                 const pt = state.waypoints[key];
                 if (!pt) return;
 
-                try {
-                    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${pt.lat}&lon=${pt.lng}&zoom=18&addressdetails=1`;
-                    const res = await fetch(url, { headers: { 'Accept-Language': 'id', 'User-Agent': 'ShopeeFoodDriver/2.0' } });
-                    if (res.ok) {
-                        const data = await res.json();
-                        if (data && data.display_name) {
-                            const addr = data.address || {};
-                            const road = addr.road || addr.pedestrian || addr.street || addr.suburb || addr.neighbourhood || data.display_name.split(',')[0];
-                            const district = addr.subdistrict || addr.district || addr.city_district || addr.village || '';
-                            const city = addr.city || addr.town || addr.municipality || addr.county || state.cityName;
-                            const cleanParts = [road];
-                            if (district && district !== road) cleanParts.push(district);
-                            if (city && city !== district) cleanParts.push(city);
-                            state.waypoints[key].address = cleanParts.join(', ');
+                const apiKey = state.realtime.googleMapsApiKey || DEFAULT_GOOGLE_MAPS_API_KEY;
+                let resolved = false;
 
-                            // Update UI
-                            updateSummaryAddressText();
-                            refreshAllPopups();
-                            if (state.activeTab === 'points') {
-                                renderWaypointsList();
+                // 1. Google Places API (New) searchNearby untuk nama resto / tempat presisi
+                if (apiKey) {
+                    try {
+                        const controllerG = new AbortController();
+                        const gTimeout = setTimeout(() => controllerG.abort(), 4000);
+                        const resG = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Goog-Api-Key': apiKey,
+                                'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.location'
+                            },
+                            body: JSON.stringify({
+                                locationRestriction: {
+                                    circle: {
+                                        center: { latitude: pt.lat, longitude: pt.lng },
+                                        radius: 120.0
+                                    }
+                                },
+                                languageCode: 'id',
+                                maxResultCount: 2
+                            }),
+                            signal: controllerG.signal
+                        });
+                        clearTimeout(gTimeout);
+
+                        if (resG.ok) {
+                            const dataG = await resG.json();
+                            if (dataG.places && dataG.places.length > 0) {
+                                const place = dataG.places[0];
+                                const placeName = place.displayName ? place.displayName.text : '';
+                                const fullAddr = place.formattedAddress || '';
+                                let cleanAddr = placeName;
+                                if (fullAddr) {
+                                    const shortStreet = fullAddr.split(',')[0];
+                                    if (placeName && shortStreet && !placeName.includes(shortStreet)) {
+                                        cleanAddr = `${placeName}, ${shortStreet}`;
+                                    } else {
+                                        cleanAddr = placeName || shortStreet;
+                                    }
+                                }
+                                if (cleanAddr) {
+                                    state.waypoints[key].address = cleanAddr;
+                                    resolved = true;
+                                    updateSummaryAddressText();
+                                    refreshAllPopups();
+                                    if (state.activeTab === 'points') {
+                                        renderWaypointsList();
+                                    }
+                                }
                             }
                         }
+                    } catch (gErr) {
+                        // Google Places fallback
                     }
-                } catch (e) {
-                    // Non-critical fallback
+                }
+
+                // 2. Fallback Nominatim jika belum resolved
+                if (!resolved) {
+                    try {
+                        const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${pt.lat}&lon=${pt.lng}&zoom=18&addressdetails=1`;
+                        const res = await fetch(url, { headers: { 'Accept-Language': 'id', 'User-Agent': 'ShopeeFoodDriver/2.0' } });
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data && data.display_name) {
+                                const addr = data.address || {};
+                                const road = addr.road || addr.pedestrian || addr.street || addr.suburb || addr.neighbourhood || data.display_name.split(',')[0];
+                                const district = addr.subdistrict || addr.district || addr.city_district || addr.village || '';
+                                const city = addr.city || addr.town || addr.municipality || addr.county || state.cityName;
+                                const cleanParts = [road];
+                                if (district && district !== road) cleanParts.push(district);
+                                if (city && city !== district) cleanParts.push(city);
+                                state.waypoints[key].address = cleanParts.join(', ');
+
+                                // Update UI
+                                updateSummaryAddressText();
+                                refreshAllPopups();
+                                if (state.activeTab === 'points') {
+                                    renderWaypointsList();
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        // Non-critical fallback
+                    }
                 }
             }, 350);
         }
@@ -1860,8 +1941,35 @@
         }
 
         // ============================================================================
-        // OSRM ROUTING WITH MULTI-SERVER FALLBACK
+        // GOOGLE ROUTES API (NEW) & OSRM MULTI-SERVER ROUTING
         // ============================================================================
+        function decodePolyline(encoded) {
+            var points = [];
+            var index = 0, len = encoded.length;
+            var lat = 0, lng = 0;
+            while (index < len) {
+                var b, shift = 0, result = 0;
+                do {
+                    b = encoded.charCodeAt(index++) - 63;
+                    result |= (b & 0x1f) << shift;
+                    shift += 5;
+                } while (b >= 0x20);
+                var dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
+                lat += dlat;
+                shift = 0;
+                result = 0;
+                do {
+                    b = encoded.charCodeAt(index++) - 63;
+                    result |= (b & 0x1f) << shift;
+                    shift += 5;
+                } while (b >= 0x20);
+                var dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
+                lng += dlng;
+                points.push([lat / 1e5, lng / 1e5]);
+            }
+            return points;
+        }
+
         async function updateRouteAndCalculate(openPopupKey = null) {
             const activeKeys = getActiveWaypointKeys();
 
@@ -1878,35 +1986,98 @@
                 if (map.hasLayer(markers.cust3)) map.removeLayer(markers.cust3);
             }
 
-            const coordsQuery = activeKeys.map(k => `${state.waypoints[k].lng.toFixed(6)},${state.waypoints[k].lat.toFixed(6)}`).join(';');
-            const osrmPrimaryUrl = `https://router.project-osrm.org/route/v1/driving/${coordsQuery}?overview=full&geometries=geojson`;
-            const osrmSecondaryUrl = `https://routing.openstreetmap.de/routed-car/route/v1/driving/${coordsQuery}?overview=full&geometries=geojson`;
-
             let routeSuccess = false;
 
-            // Percobaan 1: Server Utama
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 3500);
-                const response = await fetch(osrmPrimaryUrl, { signal: controller.signal });
-                clearTimeout(timeoutId);
+            // Prioritas 1: Google Routes API (New) dengan TRAFFIC_AWARE & TWO_WHEELER
+            const apiKey = state.realtime.googleMapsApiKey || DEFAULT_GOOGLE_MAPS_API_KEY;
+            if (apiKey && activeKeys.length >= 2) {
+                try {
+                    const originPt = state.waypoints[activeKeys[0]];
+                    const destPt = state.waypoints[activeKeys[activeKeys.length - 1]];
 
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-                        const route = data.routes[0];
-                        state.routeDistanceKm = route.distance / 1000;
-                        state.routeDurationMin = Math.max(2, Math.round(route.duration / 60));
-                        state.isOsrmActive = true;
-                        state.routingProvider = 'Rute Jalan Raya (OSRM)';
-                        drawRouteLine(route.geometry.coordinates.map(c => [c[1], c[0]]), true);
-                        routeSuccess = true;
+                    const routeBody = {
+                        origin: { location: { latLng: { latitude: originPt.lat, longitude: originPt.lng } } },
+                        destination: { location: { latLng: { latitude: destPt.lat, longitude: destPt.lng } } },
+                        travelMode: 'TWO_WHEELER',
+                        routingPreference: 'TRAFFIC_AWARE',
+                        computeAlternativeRoutes: false,
+                        languageCode: 'id',
+                        units: 'METRIC'
+                    };
+
+                    if (activeKeys.length > 2) {
+                        routeBody.intermediates = activeKeys.slice(1, activeKeys.length - 1).map(k => ({
+                            location: { latLng: { latitude: state.waypoints[k].lat, longitude: state.waypoints[k].lng } }
+                        }));
                     }
-                }
-            } catch (err) {}
 
-            // Percobaan 2: Server Cadangan
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 4500);
+                    const resGoogle = await fetch('https://routes.googleapis.com/directions/v2:computeRoutes', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Goog-Api-Key': apiKey,
+                            'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline'
+                        },
+                        body: JSON.stringify(routeBody),
+                        signal: controller.signal
+                    });
+                    clearTimeout(timeoutId);
+
+                    if (resGoogle.ok) {
+                        const dataGoogle = await resGoogle.json();
+                        if (dataGoogle.routes && dataGoogle.routes.length > 0) {
+                            const r = dataGoogle.routes[0];
+                            state.routeDistanceKm = (r.distanceMeters || 0) / 1000;
+                            const durSec = parseInt(r.duration || '0', 10);
+                            state.routeDurationMin = Math.max(2, Math.round(durSec / 60));
+                            state.isOsrmActive = true;
+                            state.routingProvider = 'Google Routes (Live Traffic)';
+                            
+                            if (r.polyline && r.polyline.encodedPolyline) {
+                                const decoded = decodePolyline(r.polyline.encodedPolyline);
+                                drawRouteLine(decoded, true);
+                            }
+                            routeSuccess = true;
+                        }
+                    }
+                } catch (gErr) {
+                    console.warn('Google Routes API fallback to OSRM:', gErr);
+                }
+            }
+
+            // Prioritas 2: OSRM Server Utama
             if (!routeSuccess) {
+                const coordsQuery = activeKeys.map(k => `${state.waypoints[k].lng.toFixed(6)},${state.waypoints[k].lat.toFixed(6)}`).join(';');
+                const osrmPrimaryUrl = `https://router.project-osrm.org/route/v1/driving/${coordsQuery}?overview=full&geometries=geojson`;
+
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 3500);
+                    const response = await fetch(osrmPrimaryUrl, { signal: controller.signal });
+                    clearTimeout(timeoutId);
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+                            const route = data.routes[0];
+                            state.routeDistanceKm = route.distance / 1000;
+                            state.routeDurationMin = Math.max(2, Math.round(route.duration / 60));
+                            state.isOsrmActive = true;
+                            state.routingProvider = 'Rute Jalan Raya (OSRM)';
+                            drawRouteLine(route.geometry.coordinates.map(c => [c[1], c[0]]), true);
+                            routeSuccess = true;
+                        }
+                    }
+                } catch (err) {}
+            }
+
+            // Prioritas 3: OSRM Mirror Server Cadangan
+            if (!routeSuccess) {
+                const coordsQuery = activeKeys.map(k => `${state.waypoints[k].lng.toFixed(6)},${state.waypoints[k].lat.toFixed(6)}`).join(';');
+                const osrmSecondaryUrl = `https://routing.openstreetmap.de/routed-car/route/v1/driving/${coordsQuery}?overview=full&geometries=geojson`;
+
                 try {
                     const controller2 = new AbortController();
                     const timeoutId2 = setTimeout(() => controller2.abort(), 3500);
@@ -1928,7 +2099,7 @@
                 } catch (err2) {}
             }
 
-            // Fallback: Haversine
+            // Prioritas 4: Fallback Haversine Offline
             if (!routeSuccess) {
                 state.isOsrmActive = false;
                 state.routingProvider = 'Estimasi Offline (Haversine)';
@@ -2108,7 +2279,13 @@
             // Update Status Badge
             const routeBadge = document.getElementById('routeStatusBadge');
             if (routeBadge) {
-                routeBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full ${state.isOsrmActive ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}"></span> ${state.routingProvider}`;
+                if (state.routingProvider && state.routingProvider.includes('Google')) {
+                    routeBadge.className = 'inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200';
+                    routeBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-blue-600 animate-ping"></span> <i class="fa-brands fa-google text-[9px] text-blue-600"></i> ${state.routingProvider}`;
+                } else {
+                    routeBadge.className = 'inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
+                    routeBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full ${state.isOsrmActive ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}"></span> ${state.routingProvider}`;
+                }
             }
 
             const activePill = document.getElementById('activeSchemePill');
@@ -2373,7 +2550,57 @@
                 results.push({ name, full, lat, lng, isKalsel, cityTag, category, source });
             }
 
-            // 1. Pencarian Instan POI Lokal Kalsel (0ms)
+            // 1. Prioritas Utama: Google Places API (New) Text Search
+            const apiKey = state.realtime.googleMapsApiKey || DEFAULT_GOOGLE_MAPS_API_KEY;
+            if (apiKey) {
+                try {
+                    const bLat = biasLat || state.cityCenter[0] || -3.3194;
+                    const bLng = biasLng || state.cityCenter[1] || 114.5908;
+                    const controllerG = new AbortController();
+                    const timeoutG = setTimeout(() => controllerG.abort(), 4000);
+                    const resG = await fetch('https://places.googleapis.com/v1/places:searchText', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Goog-Api-Key': apiKey,
+                            'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.location,places.primaryTypeDisplayName'
+                        },
+                        body: JSON.stringify({
+                            textQuery: norm,
+                            locationBias: {
+                                circle: {
+                                    center: { latitude: bLat, longitude: bLng },
+                                    radius: 35000.0
+                                }
+                            },
+                            languageCode: 'id',
+                            maxResultCount: 8
+                        }),
+                        signal: controllerG.signal
+                    });
+                    clearTimeout(timeoutG);
+
+                    if (resG.ok) {
+                        const dataG = await resG.json();
+                        if (dataG.places && Array.isArray(dataG.places)) {
+                            dataG.places.forEach(p => {
+                                const name = p.displayName ? p.displayName.text : '';
+                                const full = p.formattedAddress || '';
+                                const lat = p.location ? p.location.latitude : null;
+                                const lng = p.location ? p.location.longitude : null;
+                                const cat = p.primaryTypeDisplayName ? p.primaryTypeDisplayName.text : 'Google Maps';
+                                if (name && lat && lng) {
+                                    addCandidate(name, full, lat, lng, 'google', cat);
+                                }
+                            });
+                        }
+                    }
+                } catch (gErr) {
+                    // Google Places fallback
+                }
+            }
+
+            // 2. Pencarian Instan POI Lokal Kalsel (0ms)
             const words = norm.toLowerCase().split(/\s+/).filter(Boolean);
             kalselPOIs.forEach(poi => {
                 const searchHaystack = (poi.name + ' ' + poi.addr + ' ' + poi.city + ' ' + poi.category).toLowerCase();
@@ -2382,14 +2609,14 @@
                 }
             });
 
-            // 2. Pencarian Online Paralel: Photon Komoot + Nominatim dengan Prioritas Kalsel
+            // 3. Pencarian Online Tambahan: Photon Komoot + Nominatim
             try {
                 const bLat = biasLat || state.cityCenter[0] || -3.3194;
                 const bLng = biasLng || state.cityCenter[1] || 114.5908;
 
-                const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(norm)}&limit=10&lat=${bLat}&lon=${bLng}`;
+                const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(norm)}&limit=8&lat=${bLat}&lon=${bLng}`;
                 const hasKalselWord = norm.toLowerCase().includes('kalsel') || norm.toLowerCase().includes('kalimantan');
-                const nomUrl = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=id&limit=8&q=${encodeURIComponent(norm + (hasKalselWord ? '' : ' Kalimantan Selatan'))}`;
+                const nomUrl = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=id&limit=6&q=${encodeURIComponent(norm + (hasKalselWord ? '' : ' Kalimantan Selatan'))}`;
 
                 const [resPhoton, resNom] = await Promise.allSettled([
                     fetch(photonUrl, { headers: { 'User-Agent': 'ShopeeFoodDriver/2.0' } }).then(r => r.json()),
@@ -2414,9 +2641,13 @@
                 console.warn('Online geocode search warning:', e);
             }
 
-            // Urutkan: Kota aktif di Kalsel paling atas, kemudian seluruh Kalsel, kemudian luar daerah
+            // Urutkan: Google & POI Kalsel paling atas, kemudian kota aktif, kemudian seluruh Kalsel
             const activeCity = (state.cityName || 'Banjarmasin').toLowerCase();
             results.sort((a, b) => {
+                const aIsGoogle = (a.source === 'google' || a.source === 'local') ? 1 : 0;
+                const bIsGoogle = (b.source === 'google' || b.source === 'local') ? 1 : 0;
+                if (aIsGoogle !== bIsGoogle) return bIsGoogle - aIsGoogle;
+
                 const aIsActive = a.cityTag.toLowerCase().includes(activeCity) ? 1 : 0;
                 const bIsActive = b.cityTag.toLowerCase().includes(activeCity) ? 1 : 0;
                 if (aIsActive !== bIsActive) return bIsActive - aIsActive;
@@ -2586,7 +2817,7 @@
                     <div onclick="selectPointSearchResult('${key}', ${idx})" class="p-2.5 hover:bg-shopee-50 cursor-pointer transition border-b border-slate-100 last:border-b-0 flex items-start justify-between gap-2">
                         <div class="min-w-0 flex-1">
                             <div class="flex items-center gap-1.5 mb-0.5">
-                                <span class="px-1.5 py-0.5 rounded font-extrabold text-[9px] ${p.isKalsel ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'}">📍 ${escapeHtml(p.cityTag)}</span>
+                                <span class="px-1.5 py-0.5 rounded font-extrabold text-[9px] ${p.source === 'google' ? 'bg-blue-100 text-blue-800 border border-blue-200' : (p.isKalsel ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700')}">${p.source === 'google' ? '<i class="fa-brands fa-google text-[8px] mr-0.5"></i> Google' : '📍 ' + escapeHtml(p.cityTag)}</span>
                                 <span class="font-bold text-slate-800 text-xs line-clamp-1">${escapeHtml(p.name)}</span>
                             </div>
                             <div class="text-[10px] text-slate-500 line-clamp-1">${escapeHtml(p.full)}</div>
@@ -2704,7 +2935,7 @@
             resultsBox.innerHTML = places.map((p, idx) => `
                 <div class="p-2.5 hover:bg-slate-50 flex flex-col gap-1 border-b border-slate-100 last:border-b-0">
                     <div class="flex items-center gap-1.5">
-                        <span class="px-1.5 py-0.5 rounded font-extrabold text-[9px] ${p.isKalsel ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'}">📍 ${escapeHtml(p.cityTag)}</span>
+                        <span class="px-1.5 py-0.5 rounded font-extrabold text-[9px] ${p.source === 'google' ? 'bg-blue-100 text-blue-800 border border-blue-200' : (p.isKalsel ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700')}">${p.source === 'google' ? '<i class="fa-brands fa-google text-[8px] mr-0.5"></i> Google Maps' : '📍 ' + escapeHtml(p.cityTag)}</span>
                         <span class="font-bold text-slate-800 text-xs line-clamp-1">${escapeHtml(p.name)}</span>
                     </div>
                     <div class="text-[10px] text-slate-500 line-clamp-1">${escapeHtml(p.full)}</div>
