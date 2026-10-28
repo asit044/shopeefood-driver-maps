@@ -432,6 +432,91 @@
                     <button onclick="quickSelectCity('-2.1852,115.3853,Tanjung')" class="px-2.5 py-1 bg-white border border-slate-200 hover:border-shopee-500 hover:bg-shopee-50 text-slate-700 hover:text-shopee-600 font-bold rounded-lg shrink-0 shadow-2xs">Tanjung</button>
                 </div>
 
+                <!-- ============================================================ -->
+                <!-- PETA GESER TITIK REAL-TIME (OPSI UBAH TANPA MENGETIK) -->
+                <!-- ============================================================ -->
+                <div class="bg-white rounded-2xl p-3 border border-slate-200/90 shadow-xs space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="w-7 h-7 rounded-xl bg-shopee-50 text-shopee-600 flex items-center justify-center text-xs font-black">
+                                <i class="fa-solid fa-map-location-dot"></i>
+                            </span>
+                            <div>
+                                <h3 class="font-black text-xs text-slate-900 flex items-center gap-1.5">
+                                    Peta Ubah Titik Real-Time
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+                                </h3>
+                                <p class="text-[10px] text-slate-500">Geser atau klik peta untuk ubah titik langsung tanpa mengetik</p>
+                            </div>
+                        </div>
+                        <!-- Live Distance & Est Fare Badge -->
+                        <div class="text-right">
+                            <span id="pointsMapFareBadge" class="text-xs font-black text-emerald-600 font-mono">Rp6.400</span>
+                            <span id="pointsMapDistBadge" class="block text-[10px] font-bold text-slate-400 font-mono">2.50 km</span>
+                        </div>
+                    </div>
+
+                    <!-- Target Selection Mode (Titik 1 vs Titik 2) -->
+                    <div class="grid grid-cols-2 gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+                        <button id="btnPointsPickMerchant" onclick="setPointsMapActiveMode('merchant')" class="py-1.5 px-2 rounded-lg bg-shopee-600 text-white shadow-xs flex items-center justify-center gap-1.5 transition text-[11px]">
+                            <span id="dotPickMerchant" class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+                            <span>1. Titik Ambil (Resto)</span>
+                        </button>
+                        <button id="btnPointsPickCust1" onclick="setPointsMapActiveMode('cust1')" class="py-1.5 px-2 rounded-lg text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 transition text-[11px]">
+                            <span id="dotPickCust1" class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            <span>2. Titik Antar (Alamat)</span>
+                        </button>
+                    </div>
+
+                    <!-- Map Container on Tab 2 -->
+                    <div class="relative w-full h-64 rounded-2xl overflow-hidden border border-slate-200 shadow-inner">
+                        <div id="pointsMap" class="w-full h-full z-0"></div>
+
+                        <!-- Top Floating Mode Banner -->
+                        <div class="absolute top-2 left-2 right-2 z-10 pointer-events-none flex items-center justify-between">
+                            <div class="bg-slate-900/90 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow border border-white/10 flex items-center gap-1.5">
+                                <span id="pointsBannerDot" class="w-1.5 h-1.5 rounded-full bg-shopee-500 animate-ping"></span>
+                                <span id="pointsBannerText">Mode: Klik/Geser 1. Ambil (Resto)</span>
+                            </div>
+                            <!-- Fit Bounds Button -->
+                            <button onclick="fitPointsMapMarkers()" title="Pusatkan Kedua Titik" class="pointer-events-auto w-7 h-7 rounded-xl bg-white/95 text-slate-800 shadow-md flex items-center justify-center active:scale-95 text-xs">
+                                <i class="fa-solid fa-expand"></i>
+                            </button>
+                        </div>
+
+                        <!-- Center Crosshair Marker with Drop Button -->
+                        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none flex flex-col items-center">
+                            <i class="fa-solid fa-crosshairs text-slate-800 text-lg opacity-40"></i>
+                        </div>
+
+                        <!-- Floating Action Buttons on Bottom-Right -->
+                        <div class="absolute bottom-2 right-2 z-10 flex flex-col gap-1.5">
+                            <!-- GPS Button -->
+                            <button onclick="setPointsMapToCurrentGPS()" title="Setel Titik Aktif ke GPS Saya" class="w-8 h-8 rounded-xl bg-white text-emerald-600 shadow-lg border border-slate-200 flex items-center justify-center active:scale-90 transition">
+                                <i class="fa-solid fa-location-crosshairs text-xs"></i>
+                            </button>
+                            <!-- Swap Button -->
+                            <button onclick="swapPoints(); syncPointsMap(); renderWaypointsList();" title="Tukar Titik 1 & 2" class="w-8 h-8 rounded-xl bg-white text-amber-600 shadow-lg border border-slate-200 flex items-center justify-center active:scale-90 transition">
+                                <i class="fa-solid fa-arrow-down-up-across-line text-xs"></i>
+                            </button>
+                        </div>
+
+                        <!-- Bottom Center: Drop to Crosshair Center Button -->
+                        <div class="absolute bottom-2 left-2 z-10">
+                            <button onclick="placeActivePointAtMapCenter()" class="px-2 py-1 bg-slate-900/90 hover:bg-slate-900 active:scale-95 backdrop-blur-md text-white text-[10px] font-bold rounded-lg shadow border border-white/10 flex items-center gap-1">
+                                <i class="fa-solid fa-location-pin text-amber-400"></i>
+                                <span>Taruh di Titik Tengah</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Live Coordinate Info -->
+                    <div class="flex items-center justify-between text-[10px] text-slate-400 px-1 font-mono">
+                        <span id="pointsMapCoordsMerchant">1. Resto: -3.3194, 114.5908</span>
+                        <span id="pointsMapCoordsCust1">2. Antar: -3.3285, 114.6085</span>
+                    </div>
+                </div>
+
                 <!-- Dynamic Waypoint Cards (Titik 1 & 2) -->
                 <div id="waypointsList" class="space-y-3">
                     <!-- Populated by JavaScript -->
@@ -929,6 +1014,13 @@
         var driverMarker = null;
         var driverAccuracyCircle = null;
 
+        // Points Map (Interactive Real-Time Map on Tab 2 Ubah Titik)
+        var pointsMap = null;
+        var pointsMapCurrentTile = null;
+        const pointsMapMarkers = {};
+        var pointsMapRoutePolyline = null;
+        var pointsMapRouteCasing = null;
+
         // Tile Providers (Google Maps Genuine Layers with Real-Time Traffic)
         const tileProviders = {
             googleTraffic: {
@@ -1294,6 +1386,15 @@
                 }, 120);
             } else if (tabId === 'points') {
                 renderWaypointsList();
+                setTimeout(() => {
+                    if (!pointsMap) {
+                        initPointsMap();
+                    } else {
+                        pointsMap.invalidateSize();
+                        fitPointsMapMarkers();
+                        syncPointsMap();
+                    }
+                }, 80);
             }
         }
 
@@ -1365,6 +1466,7 @@
                     state.waypoints[key].lng = pos.lng;
                     triggerReverseGeocode(key);
                     updateRouteAndCalculate(key);
+                    syncPointsMap();
                     const name = key === 'merchant' ? '1. Ambil (Resto)' : '2. Antar (Alamat)';
                     showFeedbackToast(`Lokasi ${name} dipindahkan!`);
                 });
@@ -1378,6 +1480,7 @@
                 markers[targetKey].setLatLng(e.latlng);
                 triggerReverseGeocode(targetKey);
                 updateRouteAndCalculate(targetKey);
+                syncPointsMap();
                 const name = targetKey === 'merchant' ? '1. Ambil (Resto)' : '2. Antar (Alamat)';
                 showFeedbackToast(`${name} disetel ke lokasi klik peta!`);
             });
@@ -1390,6 +1493,179 @@
             triggerReverseGeocode('merchant');
             triggerReverseGeocode('cust1');
             updateRouteAndCalculate('merchant');
+        }
+
+        // ============================================================================
+        // POINTS MAP INTERACTION MODULE (TAB 2: UBAH TITIK REAL-TIME)
+        // ============================================================================
+        function initPointsMap() {
+            const el = document.getElementById('pointsMap');
+            if (!el || pointsMap) return;
+
+            pointsMap = L.map('pointsMap', {
+                center: state.cityCenter,
+                zoom: 13,
+                zoomControl: false
+            });
+
+            // Tile Layer Google Traffic Asli
+            const p = tileProviders.googleTraffic;
+            pointsMapCurrentTile = L.tileLayer(p.url, p.options).addTo(pointsMap);
+
+            // Markers 1 & 2
+            pointsMapMarkers.merchant = L.marker([state.waypoints.merchant.lat, state.waypoints.merchant.lng], {
+                draggable: true,
+                icon: createCustomPinIcon('bg-shopee-600 pin-pulse', '#EE4D2D', 'fa-solid fa-utensils', '1. AMBIL')
+            }).addTo(pointsMap);
+
+            pointsMapMarkers.cust1 = L.marker([state.waypoints.cust1.lat, state.waypoints.cust1.lng], {
+                draggable: true,
+                icon: createCustomPinIcon('bg-emerald-600', '#059669', 'fa-solid fa-house-user', '2. ANTAR')
+            }).addTo(pointsMap);
+
+            // Drag Events on pointsMap
+            ['merchant', 'cust1'].forEach(key => {
+                pointsMapMarkers[key].on('drag', function (e) {
+                    const pos = e.target.getLatLng();
+                    const cM = document.getElementById('pointsMapCoordsMerchant');
+                    const cC = document.getElementById('pointsMapCoordsCust1');
+                    if (key === 'merchant' && cM) cM.textContent = `1. Resto: ${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}`;
+                    if (key === 'cust1' && cC) cC.textContent = `2. Antar: ${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}`;
+                });
+
+                pointsMapMarkers[key].on('dragend', function (e) {
+                    const pos = e.target.getLatLng();
+                    state.waypoints[key].lat = pos.lat;
+                    state.waypoints[key].lng = pos.lng;
+
+                    // Sync with Main Map
+                    if (markers[key]) markers[key].setLatLng(pos);
+
+                    triggerReverseGeocode(key);
+                    updateRouteAndCalculate(key);
+                    syncPointsMap();
+                    renderWaypointsList();
+                    const name = key === 'merchant' ? '1. Ambil (Resto)' : '2. Antar (Alamat)';
+                    showFeedbackToast(`Titik ${name} dipindahkan via peta!`);
+                });
+            });
+
+            // Map click: directly drops active point to the clicked coordinate!
+            pointsMap.on('click', function (e) {
+                const targetKey = state.clickMode;
+                state.waypoints[targetKey].lat = e.latlng.lat;
+                state.waypoints[targetKey].lng = e.latlng.lng;
+
+                if (pointsMapMarkers[targetKey]) pointsMapMarkers[targetKey].setLatLng(e.latlng);
+                if (markers[targetKey]) markers[targetKey].setLatLng(e.latlng);
+
+                triggerReverseGeocode(targetKey);
+                updateRouteAndCalculate(targetKey);
+                syncPointsMap();
+                renderWaypointsList();
+                const name = targetKey === 'merchant' ? '1. Ambil (Resto)' : '2. Antar (Alamat)';
+                showFeedbackToast(`${name} disetel ke titik klik peta!`);
+            });
+
+            syncPointsMap();
+            fitPointsMapMarkers();
+        }
+
+        function syncPointsMap() {
+            if (!pointsMap) return;
+
+            const m = state.waypoints.merchant;
+            const c1 = state.waypoints.cust1;
+
+            if (pointsMapMarkers.merchant) pointsMapMarkers.merchant.setLatLng([m.lat, m.lng]);
+            if (pointsMapMarkers.cust1) pointsMapMarkers.cust1.setLatLng([c1.lat, c1.lng]);
+
+            // Update live labels in Tab 2
+            const distBadge = document.getElementById('pointsMapDistBadge');
+            if (distBadge) distBadge.textContent = `${state.routeDistanceKm.toFixed(2)} km`;
+
+            const fareBadge = document.getElementById('pointsMapFareBadge');
+            if (fareBadge) fareBadge.textContent = formatRp(state.lastCalc.netDriver);
+
+            const cM = document.getElementById('pointsMapCoordsMerchant');
+            if (cM) cM.textContent = `1. Resto: ${m.lat.toFixed(4)}, ${m.lng.toFixed(4)}`;
+
+            const cC = document.getElementById('pointsMapCoordsCust1');
+            if (cC) cC.textContent = `2. Antar: ${c1.lat.toFixed(4)}, ${c1.lng.toFixed(4)}`;
+
+            updatePointsMapModeButtons();
+        }
+
+        function fitPointsMapMarkers() {
+            if (!pointsMap || !pointsMapMarkers.merchant || !pointsMapMarkers.cust1) return;
+            const group = new L.featureGroup([pointsMapMarkers.merchant, pointsMapMarkers.cust1]);
+            pointsMap.fitBounds(group.getBounds().pad(0.25));
+        }
+
+        function setPointsMapActiveMode(mode) {
+            setClickMode(mode);
+            updatePointsMapModeButtons();
+        }
+
+        function updatePointsMapModeButtons() {
+            const btnM = document.getElementById('btnPointsPickMerchant');
+            const btnC = document.getElementById('btnPointsPickCust1');
+            const dotM = document.getElementById('dotPickMerchant');
+            const dotC = document.getElementById('dotPickCust1');
+
+            if (state.clickMode === 'merchant') {
+                if (btnM) btnM.className = 'py-1.5 px-2 rounded-lg bg-shopee-600 text-white shadow-xs flex items-center justify-center gap-1.5 transition text-[11px]';
+                if (btnC) btnC.className = 'py-1.5 px-2 rounded-lg text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 transition text-[11px]';
+                if (dotM) dotM.className = 'w-2 h-2 rounded-full bg-white animate-pulse';
+                if (dotC) dotC.className = 'w-2 h-2 rounded-full bg-emerald-500';
+            } else {
+                if (btnC) btnC.className = 'py-1.5 px-2 rounded-lg bg-emerald-600 text-white shadow-xs flex items-center justify-center gap-1.5 transition text-[11px]';
+                if (btnM) btnM.className = 'py-1.5 px-2 rounded-lg text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 transition text-[11px]';
+                if (dotC) dotC.className = 'w-2 h-2 rounded-full bg-white animate-pulse';
+                if (dotM) dotM.className = 'w-2 h-2 rounded-full bg-shopee-500';
+            }
+            updatePointsMapBanner();
+        }
+
+        function updatePointsMapBanner() {
+            const bannerDot = document.getElementById('pointsBannerDot');
+            const bannerText = document.getElementById('pointsBannerText');
+            if (state.clickMode === 'merchant') {
+                if (bannerDot) bannerDot.className = 'w-1.5 h-1.5 rounded-full bg-shopee-500 animate-ping';
+                if (bannerText) bannerText.textContent = 'Mode: Klik/Geser 1. Ambil (Resto)';
+            } else {
+                if (bannerDot) bannerDot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping';
+                if (bannerText) bannerText.textContent = 'Mode: Klik/Geser 2. Antar (Alamat)';
+            }
+        }
+
+        function placeActivePointAtMapCenter() {
+            if (!pointsMap) return;
+            const center = pointsMap.getCenter();
+            const targetKey = state.clickMode;
+            state.waypoints[targetKey].lat = center.lat;
+            state.waypoints[targetKey].lng = center.lng;
+
+            if (pointsMapMarkers[targetKey]) pointsMapMarkers[targetKey].setLatLng(center);
+            if (markers[targetKey]) markers[targetKey].setLatLng(center);
+
+            triggerReverseGeocode(targetKey);
+            updateRouteAndCalculate(targetKey);
+            syncPointsMap();
+            renderWaypointsList();
+            const name = targetKey === 'merchant' ? '1. Ambil (Resto)' : '2. Antar (Alamat)';
+            showFeedbackToast(`${name} disetel ke titik tengah peta!`);
+        }
+
+        function setPointsMapToCurrentGPS() {
+            const targetKey = state.clickMode;
+            setPointToGPS(targetKey);
+            setTimeout(() => {
+                if (pointsMap && state.waypoints[targetKey]) {
+                    pointsMap.panTo([state.waypoints[targetKey].lat, state.waypoints[targetKey].lng]);
+                    syncPointsMap();
+                }
+            }, 600);
         }
 
         function buildPopupContent(key) {
@@ -1460,6 +1736,9 @@
                 if (dot) dot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-ping';
                 if (text) text.textContent = 'Mode: 2. Antar (Alamat)';
             }
+            if (typeof updatePointsMapModeButtons === 'function') {
+                updatePointsMapModeButtons();
+            }
             renderWaypointsList();
         }
 
@@ -1495,8 +1774,12 @@
             markers.merchant.setLatLng([m.lat, m.lng]);
             markers.cust1.setLatLng([c.lat, c.lng]);
 
+            if (pointsMapMarkers && pointsMapMarkers.merchant) pointsMapMarkers.merchant.setLatLng([m.lat, m.lng]);
+            if (pointsMapMarkers && pointsMapMarkers.cust1) pointsMapMarkers.cust1.setLatLng([c.lat, c.lng]);
+
             updateRouteAndCalculate();
             fitAllMarkers();
+            if (typeof syncPointsMap === 'function') syncPointsMap();
             showFeedbackToast('Titik 1 (Ambil) dan Titik 2 (Antar) berhasil ditukar!');
         }
 
@@ -1520,9 +1803,11 @@
 
                     markers[key].setLatLng([lat, lng]);
                     map.panTo([lat, lng]);
+                    if (pointsMapMarkers && pointsMapMarkers[key]) pointsMapMarkers[key].setLatLng([lat, lng]);
 
                     triggerReverseGeocode(key);
                     updateRouteAndCalculate(key);
+                    if (typeof syncPointsMap === 'function') syncPointsMap();
                     showFeedbackToast(`${ptLabel} berhasil disetel ke GPS Anda!`);
                 },
                 (err) => {
@@ -1706,8 +1991,8 @@
         }
 
         function drawRouteLine(latLngs, isRoadGeometry) {
-            if (routeCasingPolyline) map.removeLayer(routeCasingPolyline);
-            if (routePolyline) map.removeLayer(routePolyline);
+            if (routeCasingPolyline && map && map.hasLayer(routeCasingPolyline)) map.removeLayer(routeCasingPolyline);
+            if (routePolyline && map && map.hasLayer(routePolyline)) map.removeLayer(routePolyline);
 
             routeCasingPolyline = L.polyline(latLngs, {
                 color: '#0f172a',
@@ -1725,6 +2010,29 @@
                 lineCap: 'round',
                 lineJoin: 'round'
             }).addTo(map);
+
+            // Sync with Tab 2 pointsMap
+            if (pointsMap) {
+                if (pointsMapRouteCasing && pointsMap.hasLayer(pointsMapRouteCasing)) pointsMap.removeLayer(pointsMapRouteCasing);
+                if (pointsMapRoutePolyline && pointsMap.hasLayer(pointsMapRoutePolyline)) pointsMap.removeLayer(pointsMapRoutePolyline);
+
+                pointsMapRouteCasing = L.polyline(latLngs, {
+                    color: '#0f172a',
+                    weight: 6,
+                    opacity: 0.8,
+                    lineCap: 'round',
+                    lineJoin: 'round'
+                }).addTo(pointsMap);
+
+                pointsMapRoutePolyline = L.polyline(latLngs, {
+                    color: isRoadGeometry ? '#EE4D2D' : '#f59e0b',
+                    weight: 4,
+                    opacity: 0.95,
+                    dashArray: isRoadGeometry ? null : '6, 6',
+                    lineCap: 'round',
+                    lineJoin: 'round'
+                }).addTo(pointsMap);
+            }
         }
 
         function updateGoogleMapsNavigationLink() {
@@ -1790,6 +2098,12 @@
             document.getElementById('mapNetDriverDisplay').textContent = formatRp(finalNetWithTip);
             document.getElementById('finalDriverNet').textContent = formatRp(finalNetWithTip);
             document.getElementById('estDuration').innerHTML = `<i class="fa-regular fa-clock mr-1 text-slate-400"></i>~${state.routeDurationMin} mnt`;
+
+            // Update Tab 2 Points Map Badges
+            const pointsDistEl = document.getElementById('pointsMapDistBadge');
+            if (pointsDistEl) pointsDistEl.textContent = `${dist.toFixed(2)} km`;
+            const pointsFareEl = document.getElementById('pointsMapFareBadge');
+            if (pointsFareEl) pointsFareEl.textContent = formatRp(finalNetWithTip);
 
             // Update Status Badge
             const routeBadge = document.getElementById('routeStatusBadge');
@@ -2296,9 +2610,11 @@
 
             markers[key].setLatLng([item.lat, item.lng]);
             map.panTo([item.lat, item.lng]);
+            if (pointsMapMarkers && pointsMapMarkers[key]) pointsMapMarkers[key].setLatLng([item.lat, item.lng]);
 
             triggerReverseGeocode(key);
             updateRouteAndCalculate(key);
+            if (typeof syncPointsMap === 'function') syncPointsMap();
             renderWaypointsList();
             showFeedbackToast(`${key === 'merchant' ? '1. Ambil (Resto)' : '2. Antar (Alamat)'} berhasil diubah!`);
         }
@@ -2310,9 +2626,11 @@
 
             markers[key].setLatLng([lat, lng]);
             map.panTo([lat, lng]);
+            if (pointsMapMarkers && pointsMapMarkers[key]) pointsMapMarkers[key].setLatLng([lat, lng]);
 
             triggerReverseGeocode(key);
             updateRouteAndCalculate(key);
+            if (typeof syncPointsMap === 'function') syncPointsMap();
             renderWaypointsList();
             showFeedbackToast(`${key === 'merchant' ? '1. Ambil (Resto)' : '2. Antar (Alamat)'} disetel ke ${name}!`);
         }
@@ -2327,9 +2645,11 @@
 
             markers[key].setLatLng([state.waypoints[key].lat, state.waypoints[key].lng]);
             map.panTo([state.waypoints[key].lat, state.waypoints[key].lng]);
+            if (pointsMapMarkers && pointsMapMarkers[key]) pointsMapMarkers[key].setLatLng([state.waypoints[key].lat, state.waypoints[key].lng]);
 
             triggerReverseGeocode(key);
             updateRouteAndCalculate(key);
+            if (typeof syncPointsMap === 'function') syncPointsMap();
             renderWaypointsList();
             showFeedbackToast(`Lokasi diubah ke: ${name}`);
         }
@@ -2341,8 +2661,10 @@
             state.waypoints.cust1.lng = m.lng + (deltaDeg * 0.7);
 
             markers.cust1.setLatLng([state.waypoints.cust1.lat, state.waypoints.cust1.lng]);
+            if (pointsMapMarkers && pointsMapMarkers.cust1) pointsMapMarkers.cust1.setLatLng([state.waypoints.cust1.lat, state.waypoints.cust1.lng]);
             triggerReverseGeocode('cust1');
             fitAllMarkers();
+            if (typeof syncPointsMap === 'function') syncPointsMap();
             updateRouteAndCalculate('cust1');
             renderWaypointsList();
         }
@@ -2410,9 +2732,11 @@
 
             markers[targetKey].setLatLng([item.lat, item.lng]);
             map.panTo([item.lat, item.lng]);
+            if (pointsMapMarkers && pointsMapMarkers[targetKey]) pointsMapMarkers[targetKey].setLatLng([item.lat, item.lng]);
 
             triggerReverseGeocode(targetKey);
             updateRouteAndCalculate(targetKey);
+            if (typeof syncPointsMap === 'function') syncPointsMap();
             renderWaypointsList();
             showFeedbackToast(`${targetKey === 'merchant' ? '1. Ambil (Resto)' : '2. Antar (Alamat)'} disetel ke: ${escapeHtml(state.waypoints[targetKey].address)}`);
         }
@@ -2446,10 +2770,13 @@
 
             Object.keys(markers).forEach(k => {
                 markers[k].setLatLng([state.waypoints[k].lat, state.waypoints[k].lng]);
+                if (pointsMapMarkers && pointsMapMarkers[k]) pointsMapMarkers[k].setLatLng([state.waypoints[k].lat, state.waypoints[k].lng]);
                 triggerReverseGeocode(k);
             });
 
             fitAllMarkers();
+            if (typeof syncPointsMap === 'function') syncPointsMap();
+            if (typeof fitPointsMapMarkers === 'function') fitPointsMapMarkers();
             updateRouteAndCalculate('merchant');
             renderWaypointsList();
             showFeedbackToast(`Kota diubah ke: ${state.cityName}`);
